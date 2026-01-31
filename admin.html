@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - PolymathBundleHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#DC2626"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                <span><span>P</span><span>o</span><span>l</span><span>y</span><span>m</span><span>a</span><span>t</span><span>h</span><span>B</span><span>u</span><span>n</span><span>d</span><span>l</span><span>e</span><span>H</span><span>u</span><span>b</span></span>
+            </a>
+            <div class="nav-actions">
+                <button class="theme-toggle">🌙</button>
+                <button class="btn btn-outline" onclick="logout()">Logout Admin</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container" style="padding-top: 2rem;">
+        <div class="admin-grid">
+            <aside class="dashboard-sidebar">
+                <div class="balance-card">
+                    <span>iDATA Admin Balance</span>
+                    <strong id="admin-idata-balance">GHS 0.00</strong>
+                </div>
+                <nav id="admin-nav">
+                    <a href="#" class="sidebar-link active" data-tab="transactions">All Transactions</a>
+                    <a href="#" class="sidebar-link" data-tab="users">User Management</a>
+                    <a href="#" class="sidebar-link" data-tab="prices">Price Control</a>
+                    <a href="#" class="sidebar-link" data-tab="api">API Settings</a>
+                </nav>
+            </aside>
+
+            <section id="admin-content">
+                <!-- Transactions Tab -->
+                <div id="tab-transactions" class="admin-tab">
+                    <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Global Transactions</h2>
+                            <p class="text-muted">Monitor and control every purchase across the platform.</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="refreshAdminData()">Refresh Data</button>
+                    </div>
+
+                    <div id="admin-stats">
+                        <div class="stat-card">
+                            <span class="text-muted">Total Sales</span>
+                            <div id="total-sales">GHS 0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="text-muted">Est. Profit</span>
+                            <div id="total-profit" style="color: var(--success);">GHS 0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="text-muted">Active Orders</span>
+                            <div id="active-orders">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="text-muted">Total Users</span>
+                            <div id="total-users">0</div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: var(--bg-body);">
+                                    <tr>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">User / Date</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Bundle</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Recipient</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Profit</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: right; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-transactions-table">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Control Tab -->
+                <div id="tab-prices" class="admin-tab" style="display: none;">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Price & Profit Control</h2>
+                        <p class="text-muted">Manage your profit margins and bundle-specific pricing.</p>
+                    </div>
+
+                    <!-- Profit Margin Settings -->
+                    <div style="background: var(--bg-card); padding: 2rem; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Global Profit Formula</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">Flat Profit (GHS)</label>
+                                <input type="number" id="setting-flat" step="0.1" 
+                                    style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
+                                <small class="text-muted">Fixed amount added to every sale.</small>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">Percentage Markup (%)</label>
+                                <input type="number" id="setting-percent" step="0.01" 
+                                    style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
+                                <small class="text-muted">Percentage of cost added (e.g., 0.05 for 5%).</small>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">Public Surcharge (GHS)</label>
+                                <input type="number" id="setting-surcharge" step="0.1" 
+                                    style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
+                                <small class="text-muted">Extra fee for non-members.</small>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">Min. Profit (GHS)</label>
+                                <input type="number" id="setting-min" step="0.1" 
+                                    style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
+                                <small class="text-muted">Absolute minimum profit per sale.</small>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); pt: 1.5rem;">
+                            <button class="btn btn-primary" onclick="saveProfitSettings()">Save Global Formula</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1.25rem;">Bundle Price Overrides</h3>
+                        <p class="text-muted">Set specific member prices for individual bundles. These override the formula above.</p>
+                    </div>
+
+                    <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: var(--bg-body);">
+                                    <tr>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Bundle Name</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Base Cost</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Formula Price</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Custom Price (Member)</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: right; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-price-table">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management Tab -->
+                <div id="tab-users" class="admin-tab" style="display: none;">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">User Management</h2>
+                        <p class="text-muted">View and manage registered users on the platform.</p>
+                    </div>
+
+                    <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: var(--bg-body);">
+                                    <tr>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">User Name</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Email</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Wallet Balance</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Role</th>
+                                        <th style="padding: 1.25rem 1rem; text-align: right; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-user-table">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Settings Tab -->
+                <div id="tab-api" class="admin-tab" style="display: none;">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">API & Payment Settings</h2>
+                        <p class="text-muted">Configure your connection to the iDATA provider and Paystack gateway.</p>
+                    </div>
+
+                    <div style="background: var(--bg-card); padding: 2rem; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); max-width: 600px; margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Payment Gateway (Paystack)</h3>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Paystack Public Key</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="setting-paystack-key" placeholder="pk_live_..." 
+                                    style="flex: 1; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
+                                <button class="btn btn-primary" onclick="savePaystackKey()">Save Key</button>
+                            </div>
+                            <small class="text-muted">Required for processing direct payments and wallet top-ups.</small>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-card); padding: 2rem; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); max-width: 600px;">
+                        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Data Provider (iDATA)</h3>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">iDATA Base URL</label>
+                            <input type="text" value="https://idata.gh/api/v1" readonly 
+                                style="width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-muted); cursor: not-allowed;">
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">API Authorization Key</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="password" value="sk_live_************************" readonly 
+                                    style="flex: 1; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
+                                <button class="btn btn-outline" onclick="showToast('API Key management is restricted in demo mode.')">Edit</button>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem; background: rgba(37, 99, 235, 0.1); border-radius: 12px; color: var(--primary); font-size: 0.85rem;">
+                            ℹ️ These settings are managed by the system administrator. Contact technical support for changes.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item">
+            <span>🏠</span>
+            <span>Site</span>
+        </a>
+        <a href="#" class="mobile-nav-item active" onclick="location.reload(); return false;">
+            <span>🛠️</span>
+            <span>Admin</span>
+        </a>
+        <button class="mobile-nav-item" onclick="logout()" style="background: none; border: none;">
+            <span>🚪</span>
+            <span>Logout</span>
+        </button>
+    </nav>
+
+    <script src="app.js"></script>
+    <script>
+        // Inline script for Admin specific init
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initAdmin === 'function') initAdmin();
+        });
+    </script>
+</body>
+</html>

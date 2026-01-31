@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - PolymathBundleHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                <span><span>P</span><span>o</span><span>l</span><span>y</span><span>m</span><span>a</span><span>t</span><span>h</span><span>B</span><span>u</span><span>n</span><span>d</span><span>l</span><span>e</span><span>H</span><span>u</span><span>b</span></span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="bundles.html" class="nav-link">Browse Bundles</a></li>
+                <li><a href="about.html" class="nav-link active">About</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle">🌙</button>
+                <div style="position: relative;">
+                    <a href="#" class="nav-link" onclick="showCart(); return false;">🛒</a>
+                    <span class="cart-badge cart-count">0</span>
+                </div>
+                <a href="login.html" class="btn btn-primary">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <main style="padding-top: 120px;">
+        <section class="section">
+            <div class="container">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;">
+                    <div>
+                        <h1 class="section-title" style="font-size: 3rem; margin-bottom: 1.5rem; text-align: left;">Empowering Ghana's Digital Future</h1>
+                        <p class="section-subtitle" style="text-align: left; margin: 0 0 1.5rem 0;">We are Ghana's leading digital assets and data bundle provider, dedicated to making high-quality digital services accessible to everyone at affordable prices.</p>
+                        <p class="text-muted" style="margin-bottom: 2rem;">Founded in 2024, PolymathBundleHub started with a simple mission: to bridge the gap between premium digital products and the Ghanaian consumer. We've since grown into a trusted platform serving thousands of members with instant delivery and unbeatable customer support.</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <div class="stat-card" style="padding: 1.5rem; background: var(--bg-card); border-radius: 12px; border-left: 4px solid var(--primary);">
+                                <div style="font-size: 2rem; font-weight: 800; color: var(--primary);">10k+</div>
+                                <div style="font-size: 0.9rem; color: var(--text-muted);">Happy Users</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1.5rem; background: var(--bg-card); border-radius: 12px; border-left: 4px solid #10b981;">
+                                <div style="font-size: 2rem; font-weight: 800; color: #10b981;">Instant</div>
+                                <div style="font-size: 0.9rem; color: var(--text-muted);">Delivery Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="position: relative;">
+                        <img src="https://images.unsplash.com/photo-1522071823991-b9671f9d7f1f?w=800&auto=format&fit=crop&q=60" alt="About Us" style="width: 100%; border-radius: 24px; box-shadow: var(--shadow-lg);">
+                        <div style="position: absolute; bottom: -20px; right: -20px; background: var(--primary); color: white; padding: 1.5rem; border-radius: 16px; box-shadow: var(--shadow-lg);">
+                            <div style="font-size: 1.25rem; font-weight: 700;">Since 2024</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Leading the Market</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" style="background-color: var(--bg-card);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 class="section-title">Our Core Values</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">The principles that drive everything we do at PolymathBundleHub.</p>
+                </div>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <span class="feature-icon">🚀</span>
+                        <h3 class="feature-title">Speed</h3>
+                        <p class="text-muted">We believe in instant gratification. Our automated systems ensure your data and assets are delivered the second your payment is confirmed.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">💎</span>
+                        <h3 class="feature-title">Affordability</h3>
+                        <p class="text-muted">By leveraging bulk purchasing power, we pass on massive savings to our members, making premium data accessible to all.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">🤝</span>
+                        <h3 class="feature-title">Trust</h3>
+                        <p class="text-muted">Thousands of Ghanaians trust us daily. We prioritize your security and satisfaction above all else with 24/7 dedicated support.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">PolymathBundleHub</div>
+                    <p class="footer-desc">Your ultimate destination for high-quality digital bundles. We help creators and businesses grow faster.</p>
+                </div>
+                <div>
+                    <h4 class="footer-title">Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="bundles.html">All Bundles</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://wa.me/233502832593">WhatsApp</a></li>
+                        <li><a href="#">Twitter</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PolymathBundleHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+        <a href="login.html" class="mobile-nav-item">
+            <span>👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>

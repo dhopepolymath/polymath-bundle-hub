@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PolymathBundleHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                <span>PolymathBundleHub</span>
+            </a>
+            <div class="nav-actions">
+                <button class="theme-toggle">🌙</button>
+                <div class="user-profile-nav" onclick="location.href='dashboard.html'">
+                    <div class="user-avatar-sm" id="user-avatar-initial">U</div>
+                    <span class="user-balance-nav" id="user-balance-nav">GHS 0.00</span>
+                </div>
+                <button class="btn btn-outline btn-sm logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="dashboard-grid">
+            <aside class="dashboard-sidebar">
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">👤</div>
+                    <h3 id="user-name">Loading...</h3>
+                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(37, 99, 235, 0.1); border-radius: 12px;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Wallet Balance</span>
+                        <strong id="user-balance" style="font-size: 1.5rem; color: var(--primary);">GHS 0.00</strong>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; font-size: 0.85rem;" onclick="showTopupInfo()">Top-up Wallet</button>
+                </div>
+                <nav>
+                    <a href="#" class="sidebar-link active" onclick="showDashboardTab('bundles')">
+                        <span style="margin-right: 10px;">📊</span> Overview
+                    </a>
+                    <a href="#" class="sidebar-link" onclick="showDashboardTab('history')">
+                        <span style="margin-right: 10px;">📜</span> Order History
+                    </a>
+                    <a href="#" class="sidebar-link" onclick="showDashboardTab('settings')">
+                        <span style="margin-right: 10px;">⚙️</span> Account Settings
+                    </a>
+                    <div style="margin: 1.5rem 0; border-top: 1px solid var(--border-color);"></div>
+                    <a href="https://wa.me/233502832593" target="_blank" class="sidebar-link">
+                        <span style="margin-right: 10px;">💬</span> Get Support
+                    </a>
+                    <a href="#" class="sidebar-link" onclick="logout()" style="color: #ef4444;">
+                        <span style="margin-right: 10px;">🚪</span> Logout
+                    </a>
+                </nav>
+            </aside>
+            <section id="dashboard-content">
+                <!-- Loaded dynamically via app.js -->
+            </section>
+        </div>
+    </main>
+
+    <!-- Top-up Modal -->
+    <div id="topup-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-card); padding: 2.5rem; border-radius: 24px; max-width: 450px; width: 90%; position: relative; box-shadow: var(--shadow-lg);">
+            <button onclick="hideTopupInfo()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; font-size: 1.5rem; color: var(--text-muted);">&times;</button>
+            
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="width: 64px; height: 64px; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">💰</div>
+                <h2 style="font-size: 1.5rem;">Top-up Your Wallet</h2>
+                <p class="text-muted">Enter amount and pay securely with Paystack.</p>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount (GHS)</label>
+                    <input type="number" id="topup-amount" placeholder="e.g. 50" 
+                        style="width: 100%; padding: 0.8rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body); font-size: 1.1rem; font-weight: 700;">
+                </div>
+            </div>
+
+            <div style="background: rgba(37, 99, 235, 0.05); padding: 1.5rem; border-radius: 16px; border: 1px dashed var(--primary); margin-bottom: 2rem;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+                    ℹ️ You will be redirected to Paystack to complete your payment via <strong>MoMo, Card, or QR</strong>. Your wallet will be updated instantly.
+                </p>
+            </div>
+
+            <button onclick="initiateTopup()" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem;">
+                Pay with Paystack
+            </button>
+            <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 1.5rem;">
+                Securely processed by <strong>Paystack</strong>
+            </p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid" style="display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 3rem; margin-bottom: 3rem;">
+                <div>
+                    <div class="footer-logo">PolymathBundleHub</div>
+                    <p class="footer-desc">Your ultimate destination for high-quality digital bundles. We help creators and businesses grow faster.</p>
+                </div>
+                <div>
+                    <h4 class="footer-title">Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="bundles.html">All Bundles</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://wa.me/233502832593">WhatsApp</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Twitter</a></li>
+                        <li><a href="#">LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PolymathBundleHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

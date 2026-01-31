@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bundle Details - PolymathBundleHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                PolymathBundleHub
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="bundles.html" class="nav-link">Browse Bundles</a></li>
+                <li><a href="#" class="nav-link">About</a></li>
+                <li><a href="#" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle">🌙</button>
+                <div style="position: relative;">
+                    <a href="#" class="nav-link">🛒</a>
+                    <span class="cart-badge cart-count">0</span>
+                </div>
+                <a href="login.html" class="btn btn-primary">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container" style="padding-top: 150px; min-height: 80vh;">
+        <div id="bundle-details">
+            <!-- Loaded dynamically via app.js -->
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2024 PolymathBundleHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

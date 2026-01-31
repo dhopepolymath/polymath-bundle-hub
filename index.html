@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolymathBundleHub - Premium Digital Bundles</title>
+    <meta name="description" content="Premium Digital Bundles at Smart Prices. High-quality assets for developers, designers, and marketers.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                <span><span>P</span><span>o</span><span>l</span><span>y</span><span>m</span><span>a</span><span>t</span><span>h</span><span>B</span><span>u</span><span>n</span><span>d</span><span>l</span><span>e</span><span>H</span><span>u</span><span>b</span></span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="bundles.html" class="nav-link">Browse Bundles</a></li>
+                <li><a href="about.html" class="nav-link">About</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle" title="Toggle Dark Mode">🌙</button>
+                <div style="position: relative;">
+                    <a href="#" class="nav-link" onclick="showCart(); return false;">🛒</a>
+                    <span class="cart-badge cart-count">0</span>
+                </div>
+                <a href="login.html" class="btn btn-primary">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1 class="hero-title logo"><span><span>P</span><span>o</span><span>l</span><span>y</span><span>m</span><span>a</span><span>t</span><span>h</span><span>B</span><span>u</span><span>n</span><span>d</span><span>l</span><span>e</span><span>H</span><span>u</span><span>b</span></span></h1>
+                <p class="hero-tagline">Premium Data Bundles at Unbeatable Prices. Save up to 30% on MTN, Telecel, and AT bundles when you join our membership.</p>
+                <div class="btn-group">
+                    <a href="bundles.html" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Browse Bundles</a>
+                    <a href="login.html" class="btn btn-outline" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Join Membership</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" style="background: linear-gradient(to bottom, var(--bg-body), var(--bg-card));">
+            <div class="container">
+                <div class="member-banner">
+                    <div style="flex: 1;">
+                        <span class="status-badge success" style="margin-bottom: 1rem;">Member Exclusive</span>
+                        <h2 style="font-size: 2rem; margin-bottom: 1rem;">Unlock Member Prices</h2>
+                        <p class="text-muted" style="font-size: 1.1rem; margin-bottom: 1.5rem;">Create a free account today and instantly get access to lower rates on all data bundles. Our members save an average of GHS 2.00 per GB!</p>
+                        <div style="display: flex; gap: 2rem; margin-top: 2rem;">
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">GHS 6.00</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Public Price</div>
+                            </div>
+                            <div style="font-size: 1.5rem; color: var(--text-muted); align-self: center;">→</div>
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: 800; color: #10b981;">GHS 4.00</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Member Price</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="member-badge-large">💎</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
+                    <div>
+                        <h2 class="section-title">Featured Bundles</h2>
+                        <p class="section-subtitle" style="margin-bottom: 0;">Our most popular data packages, chosen by thousands of users.</p>
+                    </div>
+                    <a href="bundles.html" class="btn btn-outline" style="border-radius: 99px; padding: 0.5rem 1.5rem;">View All Bundles</a>
+                </div>
+                <div id="featured-bundles" class="bundle-grid">
+                    <!-- Loaded dynamically via app.js -->
+                </div>
+
+                <!-- Live Social Proof Feed -->
+                <div class="live-feed-container">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></span>
+                        Live Activity
+                    </h3>
+                    <div id="live-feed">
+                        <!-- Items added by app.js -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="about" style="background-color: var(--bg-card); padding: 100px 0; border-top: 1px solid var(--border-color);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 class="section-title">Why Choose Polymath?</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">We combine the best prices with the fastest delivery in Ghana.</p>
+                </div>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <span class="feature-icon">🚀</span>
+                        <h3 class="feature-title">Instant Delivery</h3>
+                        <p class="text-muted">Get access to your digital products immediately after purchase.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">💳</span>
+                        <h3 class="feature-title">Easy Payment</h3>
+                        <p class="text-muted">Pay via MoMo to 0502832593 and get your wallet topped up instantly.</p>
+                    </div>
+                    <div class="feature-card">
+                        <span class="feature-icon">🛡️</span>
+                        <h3 class="feature-title">Secure Payments</h3>
+                        <p class="text-muted">Your transactions are protected by industry-standard encryption.</p>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="section" style="background-color: var(--bg-body);">
+            <div class="container">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;">
+                    <div>
+                        <h2 class="section-title">About PolymathBundleHub</h2>
+                        <p class="section-subtitle" style="text-align: left; margin: 0 0 1.5rem 0;">We are Ghana's leading digital assets and data bundle provider, dedicated to making high-quality digital services accessible to everyone at affordable prices.</p>
+                        <p class="text-muted" style="margin-bottom: 2rem;">Founded in 2024, PolymathBundleHub started with a simple mission: to bridge the gap between premium digital products and the Ghanaian consumer. We've since grown into a trusted platform serving thousands of members with instant delivery and unbeatable customer support.</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <div class="stat-card" style="padding: 1rem; background: var(--bg-card); border-radius: 12px; border-left: 4px solid var(--primary);">
+                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">10k+</div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">Happy Users</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem; background: var(--bg-card); border-radius: 12px; border-left: 4px solid #10b981;">
+                                <div style="font-size: 1.5rem; font-weight: 800; color: #10b981;">Instant</div>
+                                <div style="font-size: 0.85rem; color: var(--text-muted);">Delivery Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="position: relative;">
+                        <img src="https://images.unsplash.com/photo-1522071823991-b9671f9d7f1f?w=800&auto=format&fit=crop&q=60" alt="About Us" style="width: 100%; border-radius: 24px; box-shadow: var(--shadow-lg);">
+                        <div style="position: absolute; bottom: -20px; right: -20px; background: var(--primary); color: white; padding: 1.5rem; border-radius: 16px; box-shadow: var(--shadow-lg);">
+                            <div style="font-size: 1.25rem; font-weight: 700;">Since 2024</div>
+                            <div style="font-size: 0.85rem; opacity: 0.9;">Leading the Market</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="section" style="background-color: var(--bg-card);">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h2 class="section-title">Get In Touch</h2>
+                    <p class="section-subtitle" style="margin: 0 auto;">Have questions? Our support team is here to help you 24/7.</p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 4rem;">
+                    <div>
+                        <div style="margin-bottom: 2rem;">
+                            <h3 style="margin-bottom: 1rem;">Contact Information</h3>
+                            <p class="text-muted">Reach out to us through any of these channels for quick assistance.</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 48px; height: 48px; background: rgba(37, 99, 235, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.25rem;">📍</div>
+                                <div>
+                                    <div style="font-weight: 700;">Office Address</div>
+                                    <div class="text-muted">East Legon, Accra, Ghana</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 48px; height: 48px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.25rem;">💬</div>
+                                <div>
+                                    <div style="font-weight: 700;">WhatsApp Support</div>
+                                    <a href="https://wa.me/233502832593" target="_blank" class="text-muted" style="text-decoration: none; transition: color 0.3s;">0502832593 (Available 24/7)</a>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="width: 48px; height: 48px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.25rem;">✉️</div>
+                                <div>
+                                    <div style="font-weight: 700;">Email Support</div>
+                                    <a href="mailto:nuhuabdulai50@gmail.com" class="text-muted" style="text-decoration: none;">nuhuabdulai50@gmail.com</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: var(--bg-body); padding: 3rem; border-radius: 24px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+                        <form id="contact-form">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Your Name</label>
+                                    <input type="text" placeholder="John Doe" style="width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-body);">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email Address</label>
+                                    <input type="email" placeholder="john@example.com" style="width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-body);">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Subject</label>
+                                <input type="text" placeholder="How can we help?" style="width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-body);">
+                            </div>
+                            <div style="margin-bottom: 2rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Message</label>
+                                <textarea placeholder="Type your message here..." rows="5" style="width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-body); resize: none;"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 12px;">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item active">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="dashboard.html" class="mobile-nav-item">
+            <span>📊</span>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+    </nav>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">PolymathBundleHub</div>
+                    <p class="footer-desc">Your ultimate destination for high-quality digital bundles. We help creators and businesses grow faster.</p>
+                </div>
+                <div>
+                    <h4 class="footer-title">Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="bundles.html">All Bundles</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Twitter</a></li>
+                        <li><a href="#">LinkedIn</a></li>
+                        <li><a href="#">Instagram</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PolymathBundleHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item active">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+        <a href="login.html" class="mobile-nav-item">
+            <span>👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-card); padding: 2rem; border-radius: 24px; max-width: 450px; width: 90%; position: relative; box-shadow: var(--shadow-lg);">
+            <button onclick="hideCart()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; font-size: 1.5rem; color: var(--text-muted);">&times;</button>
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">🛒 Your Cart</h2>
+            <div id="cart-items" style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;">
+                <!-- Cart items will be loaded here -->
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span style="font-weight: 600;">Total</span>
+                <span id="cart-total" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">GHS 0.00</span>
+            </div>
+            <a href="dashboard.html" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem;">Checkout Now</a>
+        </div>
+    </div>
+
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

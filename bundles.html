@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Bundles - PolymathBundleHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                <span><span>P</span><span>o</span><span>l</span><span>y</span><span>m</span><span>a</span><span>t</span><span>h</span><span>B</span><span>u</span><span>n</span><span>d</span><span>l</span><span>e</span><span>H</span><span>u</span><span>b</span></span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="bundles.html" class="nav-link active">Browse Bundles</a></li>
+                <li><a href="about.html" class="nav-link">About</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle">🌙</button>
+                <div style="position: relative;">
+                    <a href="#" class="nav-link" onclick="showCart(); return false;">🛒</a>
+                    <span class="cart-badge cart-count">0</span>
+                </div>
+                <a href="login.html" class="btn btn-primary">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container" style="padding-top: 120px;">
+        <header style="margin-bottom: 3rem;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">All Bundles</h1>
+            <p class="text-muted">Find the perfect digital assets for your next big project.</p>
+        </header>
+
+        <div class="filters-bar">
+            <input type="text" id="search-bundles" class="form-input search-input" placeholder="Search bundles by name or description...">
+            <select id="network-filter" class="form-input" style="width: auto;">
+                <option value="all">All Networks</option>
+                <option value="mtn">MTN Ghana</option>
+                <option value="telecel">Telecel (Vodafone)</option>
+                <option value="at">AT (AirtelTigo)</option>
+            </select>
+            <select id="sort-filter" class="form-input" style="width: auto;">
+                <option value="newest">Newest First</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+            </select>
+        </div>
+
+        <div id="bundles-grid" class="bundle-grid">
+            <!-- Loaded dynamically via app.js -->
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">PolymathBundleHub</div>
+                    <p class="footer-desc">Your ultimate destination for high-quality digital bundles.</p>
+                </div>
+                <div>
+                    <h4 class="footer-title">Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="bundles.html">All Bundles</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Twitter</a></li>
+                        <li><a href="#">LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PolymathBundleHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item active">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+        <a href="login.html" class="mobile-nav-item">
+            <span>👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-card); padding: 2rem; border-radius: 24px; max-width: 450px; width: 90%; position: relative; box-shadow: var(--shadow-lg);">
+            <button onclick="hideCart()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; font-size: 1.5rem; color: var(--text-muted);">&times;</button>
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">🛒 Your Cart</h2>
+            <div id="cart-items" style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;">
+                <!-- Cart items will be loaded here -->
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span style="font-weight: 600;">Total</span>
+                <span id="cart-total" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">GHS 0.00</span>
+            </div>
+            <a href="dashboard.html" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem;">Checkout Now</a>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

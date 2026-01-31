@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - PolymathBundleHub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
+                    <path d="M10 10H22V14H10V10Z" fill="white"/>
+                    <path d="M10 18H18V22H10V18Z" fill="white"/>
+                </svg>
+                <span><span>P</span><span>o</span><span>l</span><span>y</span><span>m</span><span>a</span><span>t</span><span>h</span><span>B</span><span>u</span><span>n</span><span>d</span><span>l</span><span>e</span><span>H</span><span>u</span><span>b</span></span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="bundles.html" class="nav-link">Browse Bundles</a></li>
+                <li><a href="about.html" class="nav-link">About</a></li>
+                <li><a href="contact.html" class="nav-link active">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle">🌙</button>
+                <div style="position: relative;">
+                    <a href="#" class="nav-link" onclick="showCart(); return false;">🛒</a>
+                    <span class="cart-badge cart-count">0</span>
+                </div>
+                <a href="login.html" class="btn btn-primary">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <main style="padding-top: 120px;">
+        <section class="section">
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 4rem;">
+                    <h1 class="section-title" style="font-size: 3rem;">Get In Touch</h1>
+                    <p class="section-subtitle" style="margin: 0 auto;">Have questions about our bundles or need help with an order? Our support team is here for you 24/7.</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 4rem;">
+                    <div>
+                        <div style="margin-bottom: 3rem;">
+                            <h2 style="font-family: 'Sora', sans-serif; margin-bottom: 1.5rem;">Contact Information</h2>
+                            <p class="text-muted" style="font-size: 1.1rem;">We're always ready to help. Reach out through any of these channels for instant assistance.</p>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 2rem;">
+                            <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
+                                <div style="width: 56px; height: 56px; background: rgba(37, 99, 235, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; border-radius: 16px; font-size: 1.5rem; flex-shrink: 0;">📍</div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Headquarters</div>
+                                    <div class="text-muted">East Legon, Accra, Ghana</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
+                                <div style="width: 56px; height: 56px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-size: 1.5rem; flex-shrink: 0;">💬</div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">WhatsApp Support</div>
+                                    <a href="https://wa.me/233502832593" target="_blank" class="text-muted" style="text-decoration: none; font-size: 1.1rem; border-bottom: 1px dashed var(--text-muted);">0502832593 (Available 24/7)</a>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
+                                <div style="width: 56px; height: 56px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-size: 1.5rem; flex-shrink: 0;">✉️</div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 0.25rem;">Email Us</div>
+                                    <a href="mailto:nuhuabdulai50@gmail.com" class="text-muted" style="text-decoration: none; font-size: 1.1rem; border-bottom: 1px dashed var(--text-muted);">nuhuabdulai50@gmail.com</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-card); padding: 3.5rem; border-radius: 32px; border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+                        <form id="contact-form" onsubmit="event.preventDefault(); alert('Message sent successfully! We will get back to you shortly.'); this.reset();">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div>
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" class="form-input" placeholder="John Doe" required>
+                                </div>
+                                <div>
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" class="form-input" placeholder="john@example.com" required>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label class="form-label">Subject</label>
+                                <input type="text" class="form-input" placeholder="How can we help you?" required>
+                            </div>
+                            <div style="margin-bottom: 2rem;">
+                                <label class="form-label">Your Message</label>
+                                <textarea class="form-input" placeholder="Tell us more about your inquiry..." rows="6" style="resize: none;" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1.2rem; font-size: 1.1rem; border-radius: 16px;">
+                                Send Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-logo">PolymathBundleHub</div>
+                    <p class="footer-desc">Your ultimate destination for high-quality digital bundles. We help creators and businesses grow faster.</p>
+                </div>
+                <div>
+                    <h4 class="footer-title">Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="bundles.html">All Bundles</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="footer-title">Connect</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://wa.me/233502832593">WhatsApp</a></li>
+                        <li><a href="#">Twitter</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 PolymathBundleHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+        <a href="login.html" class="mobile-nav-item">
+            <span>👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
