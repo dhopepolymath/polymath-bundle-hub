@@ -2,6 +2,7 @@ services:
   # Flask Backend Service
   - type: web
     name: polymath-backend
+    plan: free
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server:app
