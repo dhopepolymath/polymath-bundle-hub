@@ -76,34 +76,7 @@ const state = {
 // --- Mock Data / Package List ---
 // Note: 'id' here must match the 'pa_data-bundle-packages' ID from iDATA.
 // Prices here are base costs. The final price shown to users will be cost + Markup.
-const MOCK_BUNDLES = [
-    // --- MTN GHANA (Non-Expiry) ---
-    { id: 5, network: "mtn", title: "MTN 1GB", description: "MTN Non-expiry Data Bundle", price: 4.30, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-    { id: 6, network: "mtn", title: "MTN 2GB", description: "MTN Non-expiry Data Bundle", price: 8.50, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-    { id: 7, network: "mtn", title: "MTN 5GB", description: "MTN Non-expiry Data Bundle", price: 21.00, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-    { id: 8, network: "mtn", title: "MTN 10GB", description: "MTN Non-expiry Data Bundle", price: 42.00, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-    { id: 9, network: "mtn", title: "MTN 20GB", description: "MTN Non-expiry Data Bundle", price: 82.00, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-    { id: 10, network: "mtn", title: "MTN 50GB", description: "MTN Non-expiry Data Bundle", price: 200.00, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-    { id: 11, network: "mtn", title: "MTN 100GB", description: "MTN Non-expiry Data Bundle", price: 390.00, image: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=800&auto=format&fit=crop&q=60" },
-
-    // --- TELECEL (Formerly Vodafone) ---
-    { id: 20, network: "telecel", title: "Telecel 1GB", description: "Telecel Special Data Bundle", price: 4.00, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-    { id: 21, network: "telecel", title: "Telecel 2GB", description: "Telecel Special Data Bundle", price: 7.80, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-    { id: 22, network: "telecel", title: "Telecel 5GB", description: "Telecel Special Data Bundle", price: 19.50, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-    { id: 23, network: "telecel", title: "Telecel 10GB", description: "Telecel Special Data Bundle", price: 38.00, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-    { id: 24, network: "telecel", title: "Telecel 20GB", description: "Telecel Special Data Bundle", price: 75.00, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-    { id: 25, network: "telecel", title: "Telecel 50GB", description: "Telecel Special Data Bundle", price: 180.00, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-    { id: 26, network: "telecel", title: "Telecel 100GB", description: "Telecel Special Data Bundle", price: 350.00, image: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&auto=format&fit=crop&q=60" },
-
-    // --- AT (AirtelTigo) ---
-    { id: 30, network: "at", title: "AT 1GB", description: "AT Big Time Data", price: 3.50, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" },
-    { id: 31, network: "at", title: "AT 2GB", description: "AT Big Time Data", price: 6.80, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" },
-    { id: 32, network: "at", title: "AT 5GB", description: "AT Big Time Data", price: 16.50, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" },
-    { id: 33, network: "at", title: "AT 10GB", description: "AT Big Time Data", price: 32.00, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" },
-    { id: 34, network: "at", title: "AT 20GB", description: "AT Big Time Data", price: 62.00, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" },
-    { id: 35, network: "at", title: "AT 50GB", description: "AT Big Time Data", price: 150.00, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" },
-    { id: 36, network: "at", title: "AT 100GB", description: "AT Big Time Data", price: 290.00, image: "https://images.unsplash.com/photo-1557683311-eac922347aa1?w=800&auto=format&fit=crop&q=60" }
-];
+// [REMOVED MOCK_BUNDLES - Now served by Python Backend]
 
 // --- API Service ---
 const api = {
@@ -126,21 +99,15 @@ const api = {
                     price: item.price ? getRetailPrice(item.id, item.price, isMember) : item.price
                 }));
             }
+            if (data && data.price) {
+                return {
+                    ...data,
+                    price: getRetailPrice(data.id, data.price, isMember)
+                };
+            }
             return data;
         } catch (error) {
-            console.warn(`API Get failed for ${endpoint}, using local data with markup.`, error);
-            const isMember = !!state.token;
-            if (endpoint === '/bundles' || endpoint === '/packages') {
-                return MOCK_BUNDLES.map(b => ({
-                    ...b,
-                    price: getRetailPrice(b.id, b.price, isMember)
-                }));
-            }
-            if (endpoint.startsWith('/bundles/')) {
-                const id = parseInt(endpoint.split('/').pop());
-                const bundle = MOCK_BUNDLES.find(b => b.id === id);
-                return bundle ? { ...bundle, price: getRetailPrice(bundle.id, bundle.price, isMember) } : null;
-            }
+            console.error(`API Get failed for ${endpoint}`, error);
             throw error;
         }
     },
@@ -464,36 +431,33 @@ function closePurchaseModal() {
 // --- Auth Functions ---
 async function login(email, password) {
     try {
-        // --- ADMIN BACKDOOR FOR LOCAL TESTING ---
-        // This allows you to access the Admin Panel without a real backend
-        if (email === ADMIN_EMAIL && password === 'admin123') {
-            state.token = 'local-admin-token';
-            state.user = { 
-                email: ADMIN_EMAIL, 
-                name: 'System Admin', 
-                balance: 0.00,
-                role: 'admin'
-            };
-            localStorage.setItem('token', state.token);
-            localStorage.setItem('user', JSON.stringify(state.user));
-            showToast('Admin Login Successful!');
-            setTimeout(() => window.location.href = 'index.html', 1000);
-            return;
-        }
-
         const response = await api.post('/login', { email, password });
-        if (response.token) {
+        if (response.success && response.token) {
             state.token = response.token;
-            state.user = response.user || { email, balance: 0.00 }; 
+            state.user = response.user;
             localStorage.setItem('token', state.token);
             localStorage.setItem('user', JSON.stringify(state.user));
             showToast('Login successful!');
             setTimeout(() => window.location.href = 'index.html', 1000);
         } else {
-            showToast('Login failed: Invalid credentials');
+            showToast('Login failed: ' + (response.message || 'Invalid credentials'));
         }
     } catch (error) {
         showToast('Login error: Could not connect to server');
+    }
+}
+
+async function signup(name, email, password) {
+    try {
+        const response = await api.post('/signup', { name, email, password });
+        if (response.success) {
+            showToast('Signup successful! Please login.');
+            setTimeout(() => window.location.href = 'login.html', 1500);
+        } else {
+            showToast('Signup failed: ' + (response.message || 'Error occurred'));
+        }
+    } catch (error) {
+        showToast('Signup error: Could not connect to server');
     }
 }
 
@@ -560,6 +524,7 @@ async function initHome() {
         const bundles = await api.get('/bundles');
         state.bundles = bundles;
         featuredContainer.innerHTML = bundles.slice(0, 3).map(renderBundleCard).join('');
+        renderLiveFeed();
     } catch (error) {
         featuredContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center;">Unable to load bundles. Please try again later.</p>`;
     }
@@ -749,15 +714,22 @@ async function processPurchase(bundleId, price, phone, network) {
                     const verification = await fetch(`${PYTHON_API_BASE}/verify-payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ reference: response.reference })
+                        body: JSON.stringify({ 
+                            reference: response.reference,
+                            email: state.user.email,
+                            amount: price
+                        })
                     });
                     const verifyResult = await verification.json();
                     
                     if (verifyResult.status === 'success') {
                         showToast('Payment verified! Processing your bundle...');
+                        // Refresh user profile to show updated balance if needed, 
+                        // though here we are about to spend it.
+                        await refreshUserProfile();
                         await executePurchase(bundleId, price, recipientPhone, providerNetwork, true);
                     } else {
-                        showToast('⚠️ Payment verification failed. Please contact support.');
+                        showToast('⚠️ Payment verification failed: ' + verifyResult.message);
                     }
                 } catch (err) {
                     console.error('Verification Error:', err);
@@ -786,64 +758,26 @@ async function executePurchase(bundleId, price, phone, network, isPrepaid) {
         const result = await api.post('/place-order', {
             network: network,
             beneficiary: phone,
-            "pa_data-bundle-packages": bundleId
+            "pa_data-bundle-packages": bundleId,
+            userEmail: state.user.email
         });
 
         // --- 2. HANDLE RESPONSE ---
         if (result.success || result.status === 'success' || result.transactionId || result.order_id) {
-            // --- 3. DEDUCT FROM WALLET (ONLY IF NOT PREPAID VIA PAYSTACK) ---
-            if (!isPrepaid) {
-                const currentBalance = parseFloat(state.user.balance || 0);
-                state.user.balance = currentBalance - price;
-                localStorage.setItem('user', JSON.stringify(state.user));
-            }
+            showToast('Order placed successfully!');
+            // Refresh user profile to get updated balance after deduction
+            await refreshUserProfile();
             
-            showToast(`Order received! ${isPrepaid ? 'Paid via Paystack.' : 'Deducted from your wallet.'}`);
-            
-            const bundle = MOCK_BUNDLES.find(b => b.id === bundleId);
-            const purchase = {
-                id: result.transactionId || result.order_id || ('TXN-' + Date.now()),
-                bundleId: bundleId, 
-                userEmail: state.user.email,
-                cost: bundle ? bundle.price : (price * 0.9), // Store cost at time of purchase
-                title: document.querySelector('h1') ? document.querySelector('h1').textContent : (bundle?.title || 'Data Bundle'),
-                phone: phone,
-                date: new Date().toLocaleString(),
-                status: 'Processing',
-                price: price,
-                network: network
-            };
-
-            // Save to Local History (User)
-            const purchases = JSON.parse(localStorage.getItem(`${APP_NAME}_purchases`) || '[]');
-            purchases.unshift(purchase);
-            localStorage.setItem(`${APP_NAME}_purchases`, JSON.stringify(purchases));
-
-            // Save to Global History (Admin)
-            const globalTransactions = JSON.parse(localStorage.getItem(`${APP_NAME}_global_transactions`) || '[]');
-            globalTransactions.unshift(purchase);
-            localStorage.setItem(`${APP_NAME}_global_transactions`, JSON.stringify(globalTransactions));
-
-            // Sync to Backend
-            try {
-                await fetch(`${PYTHON_API_BASE}/sync-transaction`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(purchase)
-                });
-            } catch (err) {
-                console.error('Sync Error:', err);
-            }
-
-            // Redirect to dashboard to monitor status
+            // Show success message or redirect
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
             }, 2000);
         } else {
-            throw new Error('Our automated system encountered an issue. Please try again or contact support.');
+            showToast('Order failed: ' + (result.message || 'Unknown error'));
         }
     } catch (error) {
-        showToast(error.message);
+        console.error('Purchase Error:', error);
+        showToast('Failed to process purchase. Please try again.');
     } finally {
         if (btn) {
             btn.disabled = false;
@@ -1355,6 +1289,15 @@ async function initAdmin() {
         return;
     }
 
+    // Load bundles if not already loaded
+    if (state.bundles.length === 0) {
+        try {
+            state.bundles = await api.get('/bundles');
+        } catch (e) {
+            console.error('Failed to load bundles in admin:', e);
+        }
+    }
+
     const idataBalanceEl = document.getElementById('admin-idata-balance');
     const transactionsTable = document.getElementById('admin-transactions-table');
     const totalSalesEl = document.getElementById('total-sales');
@@ -1408,7 +1351,7 @@ async function initAdmin() {
 
     if (totalProfitEl) {
         const profitTotal = allTransactions.reduce((acc, t) => {
-            const cost = t.cost || (MOCK_BUNDLES.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
+            const cost = t.cost || (state.bundles.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
             return acc + (t.price - cost);
         }, 0);
         totalProfitEl.textContent = formatCurrency(profitTotal);
@@ -1428,7 +1371,7 @@ async function initAdmin() {
             transactionsTable.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No transactions found in system.</td></tr>';
         } else {
             transactionsTable.innerHTML = allTransactions.map(t => {
-                const cost = t.cost || (MOCK_BUNDLES.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
+                const cost = t.cost || (state.bundles.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
                 const profit = t.price - cost;
 
                 return `
@@ -1464,7 +1407,7 @@ function renderPriceControl() {
 
     const customPrices = JSON.parse(localStorage.getItem('customPrices')) || {};
 
-    priceTable.innerHTML = MOCK_BUNDLES.map(b => {
+    priceTable.innerHTML = state.bundles.map(b => {
         const formulaPrice = getRetailPrice(b.id, b.price, true); // true for member price
         const customValue = customPrices[b.id] || '';
 
@@ -1628,26 +1571,6 @@ window.initAdmin = initAdmin;
 window.updateOrderStatus = updateOrderStatus;
 window.refreshAdminData = initAdmin;
 
-// --- Theme Management ---
-function initTheme() {
-    const themeToggle = document.querySelector('.theme-toggle');
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    if (themeToggle) {
-        themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-        
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
-        });
-    }
-}
-
 // --- Live Feed ---
 function renderLiveFeed() {
     const feedContainer = document.getElementById('live-feed');
@@ -1674,27 +1597,6 @@ function renderLiveFeed() {
     // New item every 10-20 seconds
     setInterval(addFeedItem, Math.random() * 10000 + 10000);
 }
-
-// --- Initialize App ---
-document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    initState();
-    initUI();
-    
-    const path = window.location.pathname;
-    if (path.includes('index.html') || path === '/' || path.endsWith('/')) {
-        renderFeaturedBundles();
-        renderLiveFeed();
-    } else if (path.includes('bundles.html')) {
-        renderAllBundles();
-    } else if (path.includes('details.html')) {
-        initDetails();
-    } else if (path.includes('dashboard.html')) {
-        initDashboard();
-    } else if (path.includes('admin.html')) {
-        initAdmin();
-    }
-});
 
 // New function to update navigation based on auth state
 function updateNavAuthUI() {
