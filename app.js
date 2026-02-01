@@ -7,7 +7,7 @@ const USE_PYTHON_BACKEND = true; // Security: Enabled backend to protect API key
 // For local development, use localhost. For production, update this to your backend URL.
 const PYTHON_API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' 
     ? 'http://127.0.0.1:5000/api' 
-    : 'https://your-backend-app.onrender.com/api'; 
+    : 'https://polymath-backend-txw3.onrender.com/api'; 
 const IDATA_API_BASE = 'https://idatagh.com/wp-json/custom/v1';
 
 const API_BASE_URL = USE_PYTHON_BACKEND ? PYTHON_API_BASE : IDATA_API_BASE;
