@@ -29,6 +29,16 @@ def save_db(data):
 
 # --- Routes ---
 
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "message": "Welcome to PolymathBundleHub API",
+        "endpoints": {
+            "status": "/api/status",
+            "bundles": "/api/bundles"
+        }
+    })
+
 @app.route("/api/status", methods=["GET"])
 def get_status():
     return jsonify({
