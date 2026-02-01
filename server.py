@@ -120,7 +120,6 @@ def login():
     user = next((u for u in db.get("users", []) if u["email"] == email), None)
     
     if user and user.get("password") == password:
-        # In a real app, generate a JWT token
         token = "demo-token-" + os.urandom(8).hex()
         return jsonify({
             "success": True,
@@ -134,6 +133,47 @@ def login():
         })
     
     return jsonify({"success": False, "message": "Invalid email or password"}), 401
+
+@app.route("/api/auth/google", methods=["POST"])
+def google_auth():
+    data = request.json
+    google_token = data.get("token")
+    
+    # In a real production app, we would use google-auth-library to verify this token.
+    # For this demo, we will simulate the verification and account creation.
+    
+    # Mock user data extraction from token (In reality, we'd decode the JWT)
+    # We'll create a dummy Google user for this demo
+    email = "google-user@example.com" 
+    name = "Google User"
+    
+    db = load_db()
+    user = next((u for u in db.get("users", []) if u["email"] == email), None)
+    
+    if not user:
+        # Create new user if they don't exist
+        user = {
+            "name": name,
+            "email": email,
+            "password": "google-auth-protected", # Placeholder
+            "balance": 0.0,
+            "role": "user",
+            "auth_type": "google"
+        }
+        db["users"].append(user)
+        save_db(db)
+    
+    token = "demo-google-token-" + os.urandom(8).hex()
+    return jsonify({
+        "success": True,
+        "token": token,
+        "user": {
+            "email": user["email"],
+            "name": user["name"],
+            "balance": user["balance"],
+            "role": user["role"]
+        }
+    })
 
 @app.route("/api/signup", methods=["POST"])
 def signup():

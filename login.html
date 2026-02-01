@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - PolymathBundleHub</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,6 +38,30 @@
             <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem;">Sign In</button>
         </form>
 
+        <div style="margin: 1.5rem 0; display: flex; align-items: center; gap: 1rem;">
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">OR</span>
+            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+        </div>
+
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="handleGoogleResponse"
+             data-auto_prompt="false">
+        </div>
+
+        <div class="g_id_signin"
+             data-type="standard"
+             data-shape="rectangular"
+             data-theme="outline"
+             data-text="signin_with"
+             data-size="large"
+             data-logo_alignment="left"
+             data-width="100%">
+        </div>
+
         <div style="margin-top: 2rem; text-align: center; font-size: 0.9rem;">
             <p id="auth-toggle-text">Don't have an account? <a href="#" style="color: var(--primary); font-weight: 600;">Create one</a></p>
         </div>
@@ -59,7 +84,36 @@
             submitBtn.textContent = isLogin ? 'Sign In' : 'Sign Up';
             toggleLink.textContent = isLogin ? 'Create one' : 'Sign in instead';
             document.querySelector('#auth-toggle-text').firstChild.textContent = isLogin ? "Don't have an account? " : "Already have an account? ";
+            
+            // Hide Google Sign-in on signup page to keep it simple for now
+            const googleBtn = document.querySelector('.g_id_signin');
+            const orDivider = googleBtn.previousElementSibling.previousElementSibling;
+            if (googleBtn) googleBtn.style.display = isLogin ? 'block' : 'none';
+            if (orDivider) orDivider.style.display = isLogin ? 'flex' : 'none';
         });
+
+        // Google Login Callback
+        async function handleGoogleResponse(response) {
+            console.log("Google Token Received:", response.credential);
+            showToast('Connecting to Google...');
+            
+            try {
+                const res = await api.post('/auth/google', { token: response.credential });
+                if (res.success) {
+                    state.token = res.token;
+                    state.user = res.user;
+                    localStorage.setItem('token', state.token);
+                    localStorage.setItem('user', JSON.stringify(state.user));
+                    showToast('Welcome ' + res.user.name + '!');
+                    setTimeout(() => window.location.href = 'index.html', 1000);
+                } else {
+                    showToast('Google login failed');
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('Google login error: Could not connect to server');
+            }
+        }
     </script>
 </body>
 </html>
