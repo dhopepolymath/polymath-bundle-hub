@@ -13,6 +13,9 @@ CORS(app, resources={r"/*": {"origins": "*"}}) # Allow all origins for debugging
 IDATA_API_KEY = os.environ.get("IDATA_API_KEY", "your_api_key_here")
 IDATA_BASE_URL = "https://idatagh.com/api/v1"
 
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "467182904845-4h70aumpqvutir4q4f467svkvu085umd.apps.googleusercontent.com")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "your_secret_here")
+
 # --- Mock Database ---
 # Using a simple JSON file for persistence in this demo
 DB_FILE = "database.json"
