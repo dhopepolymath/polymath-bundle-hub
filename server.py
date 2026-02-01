@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app) # Allow frontend to communicate with backend
+CORS(app, resources={r"/*": {"origins": "*"}}) # Allow all origins for debugging connection issues
 
 # --- Configuration ---
 # SECURITY: Use environment variables for sensitive data
