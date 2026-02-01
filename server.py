@@ -119,6 +119,9 @@ def login():
     db = load_db()
     user = next((u for u in db.get("users", []) if u["email"] == email), None)
     
+    # Check for hardcoded admin email
+    is_admin = email == "nuhuabdulai50@gmail.com"
+    
     if user and user.get("password") == password:
         token = "demo-token-" + os.urandom(8).hex()
         return jsonify({
@@ -128,7 +131,7 @@ def login():
                 "email": user["email"],
                 "name": user.get("name", "User"),
                 "balance": user.get("balance", 0.0),
-                "role": user.get("role", "user")
+                "role": "admin" if is_admin else user.get("role", "user")
             }
         })
     
@@ -197,6 +200,53 @@ def signup():
     save_db(db)
     
     return jsonify({"success": True, "message": "Signup successful"})
+
+# --- Admin Endpoints ---
+
+@app.route("/api/admin/verify", methods=["POST"])
+def admin_verify():
+    data = request.json
+    email = data.get("email")
+    if email == "nuhuabdulai50@gmail.com":
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 403
+
+@app.route("/api/admin/stats", methods=["GET"])
+def admin_stats():
+    # In a real app, you would check the token for admin role
+    db = load_db()
+    users = db.get("users", [])
+    orders = db.get("orders", [])
+    
+    total_revenue = sum(o.get("price", 0) for o in orders if o.get("status") == "completed")
+    # Assuming a 10% average profit for simple demo stats
+    total_profit = total_revenue * 0.1 
+    
+    return jsonify({
+        "success": True,
+        "stats": {
+            "total_users": len(users),
+            "total_orders": len(orders),
+            "total_revenue": round(total_revenue, 2),
+            "total_profit": round(total_profit, 2)
+        }
+    })
+
+@app.route("/api/admin/users", methods=["GET"])
+def admin_users():
+    db = load_db()
+    return jsonify({
+        "success": True,
+        "users": db.get("users", [])
+    })
+
+@app.route("/api/admin/orders", methods=["GET"])
+def admin_orders():
+    db = load_db()
+    return jsonify({
+        "success": True,
+        "orders": db.get("orders", [])
+    })
 
 @app.route("/api/place-order", methods=["POST"])
 def place_order():

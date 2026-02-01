@@ -1338,31 +1338,21 @@ async function initAdmin() {
     // 3. Fetch Global Transactions (All users)
     let allTransactions = [];
     try {
-        allTransactions = await api.get('/admin/transactions');
+        const statsData = await api.get('/admin/stats');
+        if (statsData.success) {
+            if (totalSalesEl) totalSalesEl.textContent = formatCurrency(statsData.stats.total_revenue);
+            if (totalProfitEl) totalProfitEl.textContent = formatCurrency(statsData.stats.total_profit);
+            if (totalUsersEl) totalUsersEl.textContent = statsData.stats.total_users;
+            if (activeOrdersEl) activeOrdersEl.textContent = statsData.stats.total_orders;
+        }
+
+        const ordersData = await api.get('/admin/orders');
+        if (ordersData.success) {
+            allTransactions = ordersData.orders;
+        }
     } catch (e) {
+        console.error('Failed to fetch admin data:', e);
         allTransactions = JSON.parse(localStorage.getItem(`${APP_NAME}_global_transactions`) || '[]');
-    }
-
-    // Update Stats
-    if (totalSalesEl) {
-        const total = allTransactions.reduce((acc, curr) => acc + (curr.price || 0), 0);
-        totalSalesEl.textContent = formatCurrency(total);
-    }
-
-    if (totalProfitEl) {
-        const profitTotal = allTransactions.reduce((acc, t) => {
-            const cost = t.cost || (state.bundles.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
-            return acc + (t.price - cost);
-        }, 0);
-        totalProfitEl.textContent = formatCurrency(profitTotal);
-    }
-
-    if (activeOrdersEl) {
-        const active = allTransactions.filter(t => t.status?.toLowerCase() === 'processing').length;
-        activeOrdersEl.textContent = active;
-    }
-    if (totalUsersEl) {
-        totalUsersEl.textContent = '142'; 
     }
 
     // Render Transactions Table
@@ -1398,6 +1388,54 @@ async function initAdmin() {
                 `;
             }).join('');
         }
+    }
+}
+
+async function renderUserManagement() {
+    const content = document.getElementById('tab-users');
+    if (!content) return;
+
+    content.innerHTML = `
+        <div style="margin-bottom: 2rem;">
+            <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">User Management</h2>
+            <p class="text-muted">View and manage all registered customers.</p>
+        </div>
+        <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background: var(--bg-body);">
+                    <tr>
+                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">User Name</th>
+                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Email</th>
+                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Balance</th>
+                        <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Role</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-users-table">
+                    <tr><td colspan="4" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    try {
+        const data = await api.get('/admin/users');
+        const usersTable = document.getElementById('admin-users-table');
+        if (data.success && usersTable) {
+            usersTable.innerHTML = data.users.map(u => `
+                <tr>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">${u.name || 'N/A'}</td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">${u.email}</td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">${formatCurrency(u.balance || 0)}</td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
+                        <span class="status-badge ${u.role === 'admin' ? 'success' : 'info'}" style="background: ${u.role === 'admin' ? 'var(--danger-light)' : 'var(--primary-light)'}; color: ${u.role === 'admin' ? 'var(--danger)' : 'var(--primary)'};">
+                            ${u.role || 'user'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    } catch (e) {
+        console.error('Failed to load users:', e);
     }
 }
 
