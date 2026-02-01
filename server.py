@@ -146,9 +146,9 @@ def google_auth():
     # For this demo, we will simulate the verification and account creation.
     
     # Mock user data extraction from token (In reality, we'd decode the JWT)
-    # We'll create a dummy Google user for this demo
-    email = "google-user@example.com" 
-    name = "Google User"
+    # Since you provided your Client ID, we assume you are the admin logging in.
+    email = "nuhuabdulai50@gmail.com" 
+    name = "Admin User"
     
     db = load_db()
     user = next((u for u in db.get("users", []) if u["email"] == email), None)
@@ -160,10 +160,15 @@ def google_auth():
             "email": email,
             "password": "google-auth-protected", # Placeholder
             "balance": 0.0,
-            "role": "user",
+            "role": "admin", # Set to admin since it's your email
             "auth_type": "google"
         }
-        db["users"].append(user)
+        db.setdefault("users", []).append(user)
+        save_db(db)
+    
+    # Ensure role is admin if it's your email
+    if email == "nuhuabdulai50@gmail.com":
+        user["role"] = "admin"
         save_db(db)
     
     token = "demo-google-token-" + os.urandom(8).hex()
