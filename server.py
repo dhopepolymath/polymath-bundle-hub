@@ -261,6 +261,48 @@ def record_login_attempt(email, success):
     else:
         login_attempts[email]["count"] += 1
 
+@app.route("/api/signup", methods=["POST"])
+def signup():
+    data = request.json
+    name = data.get("name")
+    email = data.get("email")
+    password = data.get("password")
+    
+    if not name or not email or not password:
+        return jsonify({"success": False, "message": "All fields are required"}), 400
+        
+    db = load_db()
+    users = db.get("users", [])
+    
+    if any(u["email"] == email for u in users):
+        return jsonify({"success": False, "message": "Email already registered"}), 400
+        
+    new_user = {
+        "name": name,
+        "email": email,
+        "password": generate_password_hash(password),
+        "balance": 0.0,
+        "role": "user",
+        "token_version": 1
+    }
+    
+    users.append(new_user)
+    db["users"] = users
+    save_db(db)
+    
+    token = create_token(email, 1)
+    return jsonify({
+        "success": True,
+        "message": "Account created successfully",
+        "token": token,
+        "user": {
+            "name": name,
+            "email": email,
+            "balance": 0.0,
+            "role": "user"
+        }
+    })
+
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
