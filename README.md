@@ -5,8 +5,8 @@ Polymath Bundle Hub is a robust, full-stack web application designed for purchas
 ## 🚀 Features
 
 - **User Authentication**: Secure JWT-based login, registration, and Google OAuth integration.
-- **Data Bundle Integration**: Real-time integration with the iData API for fetching and purchasing data packages.
-- **Payment Processing**: Integrated with Paystack for secure and reliable payment transactions.
+- **Data Bundle Integration**: Secure automated fetching and purchasing of data packages.
+- **Payment Processing**: Integrated secure and reliable payment transactions.
 - **Profit Protection System**: Automated markup calculation to ensure consistent profit margins.
 - **Admin Dashboard**: Comprehensive tools for administrators to monitor sales, generate reports, and adjust user balances.
 - **Responsive Design**: A modern, mobile-friendly interface built with HTML5, CSS3, and Vanilla JavaScript.
@@ -16,7 +16,6 @@ Polymath Bundle Hub is a robust, full-stack web application designed for purchas
 - **Backend**: Python 3.x, Flask, Gunicorn
 - **Security**: PyJWT (JSON Web Tokens), Werkzeug (Password Hashing)
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **APIs**: [iData API](https://idatagh.com/) (Data Bundles), [Paystack API](https://paystack.com/) (Payments)
 - **Database**: JSON-based persistent storage (`database.json`)
 
 ## 📂 Project Structure
@@ -35,10 +34,10 @@ Polymath Bundle Hub is a robust, full-stack web application designed for purchas
 - `POST /api/auth/google`: Authenticate via Google OAuth token.
 
 ### Bundles & Purchases
-- `GET /api/bundles`: Fetch available data packages (proxied from iData).
+- `GET /api/bundles`: Fetch available data packages.
 - `POST /api/buy`: Place a data bundle order. Requires `pa_data-bundle-packages`, `network`, and `beneficiary`.
-- `POST /api/initialize-payment`: Create a Paystack checkout session.
-- `POST /api/verify-payment`: Verify transaction status with Paystack and credit user balance.
+- `POST /api/initialize-payment`: Create a secure checkout session.
+- `POST /api/verify-payment`: Verify transaction status and credit user balance.
 
 ### Admin (Requires Admin JWT)
 - `GET /api/admin/stats`: Get overview of users, orders, revenue, and profit.
@@ -65,7 +64,7 @@ The system ensures profitability using a multi-layered formula calculated in [ap
 
 1. **JWT Protection**: All sensitive endpoints use a `@token_required` or `@admin_required` decorator.
 2. **Password Hashing**: Uses `pbkdf2:sha256` via Werkzeug for secure credential storage.
-3. **API Masking**: Third-party API keys (iData, Paystack) are stored in `.env` and never sent to the client.
+3. **API Masking**: Sensitive third-party API keys are stored in `.env` and never sent to the client.
 4. **Rate Limiting**: Protects login endpoints from brute-force attacks.
 5. **CORS Configuration**: Restricted to allow cross-origin requests safely during development and production.
 
