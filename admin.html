@@ -195,14 +195,16 @@
 
                     <div style="background: var(--bg-card); padding: 2rem; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); max-width: 600px; margin-bottom: 2rem;">
                         <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Payment Gateway (Paystack)</h3>
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Paystack Public Key</label>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <input type="text" id="setting-paystack-key" placeholder="pk_live_..." 
-                                    style="flex: 1; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body);">
-                                <button class="btn btn-primary" onclick="savePaystackKey()">Save Key</button>
-                            </div>
-                            <small class="text-muted">Required for processing direct payments and wallet top-ups.</small>
+                        <div style="padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 16px; border: 1px solid #10b981; margin-bottom: 1rem;">
+                            <p style="color: #065f46; font-weight: 600; margin-bottom: 0.5rem;">✅ Server-Side Integration Active</p>
+                            <p style="font-size: 0.85rem; color: #065f46; line-height: 1.5;">
+                                The iDATA Paystack formula is now active. Your secret keys are securely managed via environment variables on Render. No public key is required in the frontend.
+                            </p>
+                        </div>
+                        <div style="opacity: 0.5; pointer-events: none;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Paystack Public Key (Legacy)</label>
+                            <input type="text" value="Managed by Server" readonly 
+                                style="width: 100%; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-muted);">
                         </div>
                     </div>
 
@@ -246,7 +248,7 @@
         </button>
     </nav>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4.0"></script>
     <script>
         // Inline script for Admin specific init
         document.addEventListener('DOMContentLoaded', () => {

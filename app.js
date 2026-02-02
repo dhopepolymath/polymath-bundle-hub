@@ -1,20 +1,33 @@
 /**
  * PolymathBundleHub - Main Application Logic
+ * Version: 4.0
  */
+console.log('🚀 PolymathBundleHub v4.0 - Direct MoMo Active');
 
 // Configuration
 const USE_PYTHON_BACKEND = true; // Security: Enabled backend to protect API keys
 // For local development, use localhost. For production, update this to your backend URL.
-const PYTHON_API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' 
-    ? 'http://127.0.0.1:5000/api' 
+const isProduction = window.location.hostname.endsWith('onrender.com');
+const isLocal = !isProduction;
+
+// Use relative paths when local to avoid CORS/IP issues across different browsers/devices
+const PYTHON_API_BASE = isLocal 
+    ? '/api' 
     : 'https://polymath-backend-txw3.onrender.com/api'; 
 const IDATA_API_BASE = 'https://idatagh.com/wp-json/custom/v1';
 
 const API_BASE_URL = USE_PYTHON_BACKEND ? PYTHON_API_BASE : IDATA_API_BASE;
+
+// Only log config in development
+if (isLocal) {
+    console.log('--- APP CONFIG ---');
+    console.log('isLocal:', isLocal);
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('------------------');
+}
 // SECURITY: API_KEY is now hidden in the Python backend. 
 // For frontend-only mode, it uses the placeholder.
 const API_KEY = USE_PYTHON_BACKEND ? 'HIDDEN_IN_BACKEND' : 'tera_live_c695fb80bf3c9de198a0ee4a81173ea7'; 
-const PAYSTACK_PUBLIC_KEY = localStorage.getItem('paystack_public_key') || 'pk_live_your_actual_key_here';
 /**
  * PROFIT PROTECTION SYSTEM
  * To ensure you never go at a loss, the system adds two layers of markup:
@@ -62,7 +75,6 @@ function getRetailPrice(bundleId, cost, isMember = false) {
 }
 
 const APP_NAME = 'PolymathBundleHub';
-const ADMIN_EMAIL = 'nuhuabdulai50@gmail.com'; // Your actual admin email
 
 // State Management
 const state = {
@@ -73,6 +85,12 @@ const state = {
     bundles: []
 };
 
+// Check for session validity (basic check)
+if (state.user && !state.token) {
+    state.user = null;
+    localStorage.removeItem('user');
+}
+
 // --- Mock Data / Package List ---
 // Note: 'id' here must match the 'pa_data-bundle-packages' ID from iDATA.
 // Prices here are base costs. The final price shown to users will be cost + Markup.
@@ -81,15 +99,19 @@ const state = {
 // --- API Service ---
 const api = {
     async get(endpoint) {
+        const url = `${API_BASE_URL}${endpoint}`;
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                headers: {
-                    'Authorization': `Bearer ${API_KEY}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (state.token) {
+                headers['Authorization'] = `Bearer ${state.token}`;
+            }
+            
+            const response = await fetch(url, { headers });
             if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `API error: ${response.status}`);
             }
             const data = await response.json();
             const isMember = !!state.token;
@@ -107,18 +129,23 @@ const api = {
             }
             return data;
         } catch (error) {
-            console.error(`API Get failed for ${endpoint}`, error);
+            console.error(`[API GET ERROR] ${url}:`, error);
             throw error;
         }
     },
     async post(endpoint, data) {
+        const url = `${API_BASE_URL}${endpoint}`;
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (state.token) {
+                headers['Authorization'] = `Bearer ${state.token}`;
+            }
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify(data)
             });
             
@@ -129,13 +156,118 @@ const api = {
             }
             return result;
         } catch (error) {
-            console.error('API Error:', error);
-            // Fallback for development if API_KEY is not set
-            if (API_KEY === 'YOUR_API_KEY_HERE') {
-                return { success: true, transactionId: 'DEMO-' + Math.random().toString(36).substr(2, 9).toUpperCase() };
-            }
-            showToast(`Error: ${error.message}`);
+            console.error(`[API POST ERROR] ${url}:`, error);
             throw error;
+        }
+    }
+};
+
+window.payWithPaystackHosted = async (amount, email, callback) => {
+    console.log('Initiating Hosted Paystack Payment...', { amount, email });
+
+    try {
+        const btn = document.querySelector('button[onclick="initiateTopup()"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Opening Paystack...';
+        }
+
+        const response = await fetch(`${PYTHON_API_BASE}/initialize-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, email })
+        });
+        
+        const data = await response.json();
+
+        if (data.success && data.data && data.data.authorization_url) {
+            // Store payment info for verification after redirect
+            localStorage.setItem('pending_payment_amount', amount);
+            localStorage.setItem('pending_payment_ref', data.data.reference);
+            
+            // Redirect to Paystack Hosted Page
+            window.location.href = data.data.authorization_url;
+        } else {
+            throw new Error(data.message || 'Failed to initialize payment');
+        }
+    } catch (err) {
+        console.error('Paystack Initialization Error:', err);
+        showToast('❌ ' + err.message);
+        const btn = document.querySelector('button[onclick="initiateTopup()"]');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Pay with Paystack';
+        }
+    }
+};
+
+window.payWithPaystackDirect = async (amount, email, phone, provider, callback) => {
+    console.log('Initiating Direct MoMo Charge...', { amount, email, phone, provider });
+
+    try {
+        const btn = document.querySelector('button[onclick="initiateTopup()"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending Push...';
+        }
+
+        // STEP 1: Direct Charge on Server
+        const response = await fetch(`${PYTHON_API_BASE}/charge-momo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, email, phone, provider })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('📲 ' + data.message, 'info');
+            
+            // Poll for status or wait for user to confirm
+            // For now, we use a simple interval to check if payment is verified
+            let attempts = 0;
+            const checkInterval = setInterval(async () => {
+                attempts++;
+                if (attempts > 30) { // Stop after 5 minutes (10s * 30)
+                    clearInterval(checkInterval);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Pay with Paystack';
+                    }
+                    return;
+                }
+
+                try {
+                    const verifyRes = await fetch(`${PYTHON_API_BASE}/verify-payment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            reference: data.reference,
+                            email: email,
+                            amount: amount
+                        })
+                    });
+                    const verifyData = await verifyRes.json();
+                    
+                    if (verifyData.success) {
+                        clearInterval(checkInterval);
+                        if (callback) callback({ reference: data.reference });
+                    }
+                } catch (e) {
+                    console.warn('Polling error:', e);
+                }
+            }, 10000); // Check every 10 seconds
+
+        } else {
+            throw new Error(data.message || 'Failed to initiate charge');
+        }
+    } catch (err) {
+        console.error('Direct Charge Error:', err);
+        showToast('❌ ' + err.message);
+        const btn = document.querySelector('button[onclick="initiateTopup()"]');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Pay with Paystack';
         }
     }
 };
@@ -408,13 +540,6 @@ function openPurchaseModal(bundleId, bundleTitle, bundlePrice, bundleNetwork) {
             return;
         }
 
-        // Check login
-        if (!state.token || !state.user) {
-            showToast('Please login to continue');
-            setTimeout(() => window.location.href = 'login.html', 1500);
-            return;
-        }
-
         closePurchaseModal();
         await processPurchase(bundleId, bundlePrice, phone, bundleNetwork);
     };
@@ -433,17 +558,21 @@ async function login(email, password) {
     try {
         const response = await api.post('/login', { email, password });
         if (response.success && response.token) {
+            // Clear any old session first to be safe
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
             state.token = response.token;
             state.user = response.user;
             localStorage.setItem('token', state.token);
             localStorage.setItem('user', JSON.stringify(state.user));
             showToast('Login successful!');
-            setTimeout(() => window.location.href = 'index.html', 1000);
+            setTimeout(() => window.location.href = 'dashboard.html', 1000);
         } else {
             showToast('Login failed: ' + (response.message || 'Invalid credentials'));
         }
     } catch (error) {
-        showToast('Login error: Could not connect to server');
+        showToast('Login error: ' + (error.message || 'Could not connect to server'));
     }
 }
 
@@ -457,7 +586,7 @@ async function signup(name, email, password) {
             showToast('Signup failed: ' + (response.message || 'Error occurred'));
         }
     } catch (error) {
-        showToast('Signup error: Could not connect to server');
+        showToast('Signup error: ' + (error.message || 'Could not connect to server'));
     }
 }
 
@@ -469,12 +598,70 @@ function logout() {
     window.location.href = 'index.html';
 }
 
+async function refreshUserProfile() {
+    if (!state.token || !state.user) return;
+    try {
+        const response = await fetch(`${PYTHON_API_BASE}/user/profile?email=${state.user.email}`);
+        if (response.ok) {
+            const userData = await response.json();
+            state.user = userData;
+            localStorage.setItem('user', JSON.stringify(state.user));
+            console.log('User profile refreshed:', state.user.role);
+            
+            // If the role changed to admin while on a user page, or vice versa, we might need a redirect
+            const path = window.location.pathname;
+            const page = path.split('/').pop() || 'index.html';
+            
+            if (state.user.role === 'admin' && page === 'dashboard.html') {
+                window.location.href = 'admin.html';
+            } else if (state.user.role === 'user' && page === 'admin.html') {
+                window.location.href = 'dashboard.html';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to refresh user profile:', error);
+    }
+}
+
 // --- UI Helpers ---
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-GH', {
-        style: 'currency',
-        currency: 'GHS',
-    }).format(amount);
+    try {
+        const val = parseFloat(amount || 0);
+        return new Intl.NumberFormat('en-GH', {
+            style: 'currency',
+            currency: 'GHS',
+        }).format(isNaN(val) ? 0 : val);
+    } catch (e) {
+        console.error('formatCurrency error:', e);
+        return 'GHS ' + (parseFloat(amount || 0) || 0).toFixed(2);
+    }
+}
+
+/**
+ * UI HELPERS
+ */
+function showLoader() {
+    console.log('Creating page loader');
+    const loader = document.createElement('div');
+    loader.className = 'page-loader';
+    loader.innerHTML = '<div class="loader-spinner"></div>';
+    document.body.appendChild(loader);
+    
+    // Emergency removal after 8 seconds if hideLoader is never called
+    setTimeout(() => {
+        if (document.body.contains(loader)) {
+            console.warn('Loader stuck for 8s, emergency removal');
+            hideLoader(loader);
+        }
+    }, 8000);
+    
+    return loader;
+}
+
+function hideLoader(loader) {
+    if (!loader) return;
+    loader.style.opacity = '0';
+    setTimeout(() => loader.remove(), 300);
 }
 
 function showToast(message) {
@@ -490,20 +677,55 @@ function showToast(message) {
 }
 
 function renderBundleCard(bundle) {
+    const isMember = !!state.token;
+    
+    // Calculate both prices for display
+    // bundle.price is already the retail price calculated by the API service
+    // We need to know the member price if we are currently public
+    let memberPrice = bundle.price;
+    let publicPrice = bundle.price;
+    
+    if (!isMember) {
+        // If not a member, the current price is public. 
+        // We calculate the member price by subtracting the public surcharge
+        const settings = getMarkupSettings();
+        memberPrice = Math.max(bundle.price - settings.publicSurcharge, bundle.price * 0.8); // Safety floor
+    } else {
+        // If a member, the current price is member price.
+        // We calculate public price by adding the surcharge
+        const settings = getMarkupSettings();
+        publicPrice = bundle.price + settings.publicSurcharge;
+    }
+
     return `
         <div class="bundle-card" data-id="${bundle.id}">
-            <div style="padding: 1rem 1rem 0;">
+            <div style="padding: 1rem 1rem 0; display: flex; justify-content: space-between; align-items: center;">
                 <span class="network-badge ${bundle.network}">${bundle.network}</span>
+                ${!isMember ? '<span class="status-badge warning" style="font-size: 0.65rem;">Save GHS ' + (publicPrice - memberPrice).toFixed(2) + '</span>' : '<span class="status-badge success" style="font-size: 0.65rem;">Member Rate</span>'}
             </div>
             <img src="${bundle.image}" alt="${bundle.title}" class="bundle-img">
             <div class="bundle-content">
                 <h3 class="bundle-title">${bundle.title}</h3>
                 <p class="bundle-desc">${bundle.description}</p>
+                
+                <div style="margin: 1rem 0; padding: 0.75rem; background: var(--bg-body); border-radius: 12px; border: 1px dashed var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Member Price:</span>
+                        <span style="font-weight: 700; color: #10b981; font-size: 1rem;">${formatCurrency(memberPrice)}</span>
+                    </div>
+                    ${!isMember ? `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Public Price:</span>
+                        <span style="font-weight: 600; color: var(--text-body); font-size: 0.9rem; text-decoration: line-through; opacity: 0.6;">${formatCurrency(publicPrice)}</span>
+                    </div>
+                    ` : ''}
+                </div>
+
                 <div class="bundle-footer">
-                    <span class="bundle-price">${formatCurrency(bundle.price)}</span>
+                    <span class="bundle-price" style="font-size: 1.25rem;">${formatCurrency(bundle.price)}</span>
                     <div style="display: flex; gap: 0.5rem;">
-                        <a href="details.html?id=${bundle.id}" class="btn btn-outline">Details</a>
-                        <button class="btn btn-primary" onclick="event.preventDefault(); openPurchaseModal(${bundle.id}, '${bundle.title.replace(/'/g, "\\'")}', ${bundle.price}, '${bundle.network}')">
+                        <a href="details.html?id=${bundle.id}" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Details</a>
+                        <button class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.8rem;" onclick="event.preventDefault(); openPurchaseModal(${bundle.id}, '${bundle.title.replace(/'/g, "\\'")}', ${bundle.price}, '${bundle.network}')">
                             Buy
                         </button>
                     </div>
@@ -518,7 +740,7 @@ async function initHome() {
     const featuredContainer = document.getElementById('featured-bundles');
     if (!featuredContainer) return;
 
-    featuredContainer.innerHTML = '<div class="skeleton" style="height: 300px; grid-column: 1/-1; border-radius: 16px;"></div>';
+    const loader = showLoader();
     
     try {
         const bundles = await api.get('/bundles');
@@ -527,6 +749,8 @@ async function initHome() {
         renderLiveFeed();
     } catch (error) {
         featuredContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center;">Unable to load bundles. Please try again later.</p>`;
+    } finally {
+        hideLoader(loader);
     }
 }
 
@@ -537,7 +761,7 @@ async function initShop() {
     const sortFilter = document.getElementById('sort-filter');
     if (!grid) return;
 
-    grid.innerHTML = '<div class="skeleton" style="height: 300px; grid-column: 1/-1; border-radius: 16px;"></div>';
+    const loader = showLoader();
     
     try {
         const bundles = await api.get('/bundles');
@@ -593,6 +817,8 @@ async function initShop() {
         
     } catch (error) {
         grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center;">Unable to load bundles. Please try again later.</p>`;
+    } finally {
+        hideLoader(loader);
     }
 }
 
@@ -607,7 +833,7 @@ async function initDetails() {
         return;
     }
 
-    container.innerHTML = '<div class="skeleton" style="height: 500px; border-radius: 16px;"></div>';
+    const loader = showLoader();
     
     try {
         const bundle = await api.get(`/bundles/${id}`);
@@ -673,6 +899,8 @@ async function initDetails() {
         `;
     } catch (error) {
         container.innerHTML = `<h2>Error loading bundle details.</h2>`;
+    } finally {
+        hideLoader(loader);
     }
 }
 
@@ -694,49 +922,60 @@ async function processPurchase(bundleId, price, phone, network) {
         return;
     }
 
+    // --- GUEST CHECKOUT SUPPORT ---
     if (!state.token || !state.user) {
-        showToast('Please login to continue');
-        setTimeout(() => window.location.href = 'login.html', 1500);
+        const guestEmail = prompt("You are not logged in. Enter your email address to proceed with guest checkout (for payment receipt):");
+        if (!guestEmail) return; // User cancelled
+        
+        if (!guestEmail.includes('@')) {
+            showToast("A valid email is required for guest checkout.");
+            return;
+        }
+
+        // Redirect to Paystack Hosted Page for guest payment
+        showToast('Redirecting to Paystack...');
+        
+        // Store purchase info in localStorage for verification after redirect
+        const pendingPurchase = {
+            bundleId,
+            price,
+            phone: recipientPhone,
+            network: providerNetwork,
+            guestEmail: guestEmail
+        };
+        localStorage.setItem('pending_purchase', JSON.stringify(pendingPurchase));
+        
+        window.payWithPaystackHosted(price, guestEmail);
         return;
     }
 
     // --- 0. WALLET BALANCE CHECK ---
     const userBalance = parseFloat(state.user.balance || 0);
+    
+    // Check if user wants to pay directly for high-cost items or if balance is low
+    let useDirectPayment = false;
     if (userBalance < price) {
-        const confirmPay = confirm(`Insufficient balance. Your balance: ${formatCurrency(userBalance)}. Required: ${formatCurrency(price)}.\n\nWould you like to pay GHS ${price} directly with Paystack?`);
+        useDirectPayment = confirm(`Insufficient balance. Your balance: ${formatCurrency(userBalance)}. Required: ${formatCurrency(price)}.\n\nWould you like to pay GHS ${price} via the Paystack Payment Page?`);
+        if (!useDirectPayment) return;
+    } else if (price >= 50) {
+        useDirectPayment = confirm(`This is a high-value bundle (${formatCurrency(price)}). Would you like to pay via the Paystack Payment Page instead of using your wallet balance?`);
+    }
+
+    if (useDirectPayment) {
+        // Redirect to Paystack Hosted Page for payment
+        showToast('Redirecting to Paystack...');
         
-        if (confirmPay) {
-            window.payWithPaystack(price, state.user.email, async (response) => {
-                showToast('Verifying payment with server...');
-                
-                // SECURITY: Verify payment on the backend before executing purchase
-                try {
-                    const verification = await fetch(`${PYTHON_API_BASE}/verify-payment`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            reference: response.reference,
-                            email: state.user.email,
-                            amount: price
-                        })
-                    });
-                    const verifyResult = await verification.json();
-                    
-                    if (verifyResult.status === 'success') {
-                        showToast('Payment verified! Processing your bundle...');
-                        // Refresh user profile to show updated balance if needed, 
-                        // though here we are about to spend it.
-                        await refreshUserProfile();
-                        await executePurchase(bundleId, price, recipientPhone, providerNetwork, true);
-                    } else {
-                        showToast('⚠️ Payment verification failed: ' + verifyResult.message);
-                    }
-                } catch (err) {
-                    console.error('Verification Error:', err);
-                    showToast('⚠️ Error verifying payment. Please contact admin.');
-                }
-            });
-        }
+        // Store purchase info in localStorage
+        const pendingPurchase = {
+            bundleId,
+            price,
+            phone: recipientPhone,
+            network: providerNetwork,
+            guestEmail: null
+        };
+        localStorage.setItem('pending_purchase', JSON.stringify(pendingPurchase));
+        
+        window.payWithPaystackHosted(price, state.user.email);
         return;
     }
 
@@ -745,7 +984,7 @@ async function processPurchase(bundleId, price, phone, network) {
 }
 
 // New helper function to actually call the API
-async function executePurchase(bundleId, price, phone, network, isPrepaid) {
+async function executePurchase(bundleId, price, phone, network, isPrepaid, guestEmail = null) {
     const btn = document.querySelector('.btn-primary');
     const originalText = btn ? btn.textContent : 'Buy Now';
     if (btn) {
@@ -759,19 +998,25 @@ async function executePurchase(bundleId, price, phone, network, isPrepaid) {
             network: network,
             beneficiary: phone,
             "pa_data-bundle-packages": bundleId,
-            userEmail: state.user.email
+            userEmail: guestEmail || state.user?.email
         });
 
         // --- 2. HANDLE RESPONSE ---
-        if (result.success || result.status === 'success' || result.transactionId || result.order_id) {
-            showToast('Order placed successfully!');
-            // Refresh user profile to get updated balance after deduction
-            await refreshUserProfile();
+        if (result.success || result.transactionId || result.order_id) {
+            showToast('✅ Order placed successfully!', 'success');
+            // Refresh user profile if logged in
+            if (state.token && state.user) {
+                await refreshUserProfile();
+            }
             
             // Show success message or redirect
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 2000);
+                if (state.token && state.user) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'index.html?purchase=success';
+                }
+            }, 2500);
         } else {
             showToast('Order failed: ' + (result.message || 'Unknown error'));
         }
@@ -787,12 +1032,18 @@ async function executePurchase(bundleId, price, phone, network, isPrepaid) {
 }
 
 async function initDashboard() {
+    console.log('initDashboard() started');
     const content = document.getElementById('dashboard-content');
     const userNameEl = document.getElementById('user-name');
     const userBalanceEl = document.getElementById('user-balance');
-    if (!content) return;
+    
+    if (!content) {
+        console.error('dashboard-content element not found!');
+        return;
+    }
 
     if (!state.token || !state.user) {
+        console.warn('No token or user in state - showing login message');
         content.innerHTML = `
             <div style="text-align: center; padding: 4rem;">
                 <h2>Please log in to view your dashboard</h2>
@@ -802,10 +1053,30 @@ async function initDashboard() {
         return;
     }
 
+    console.log('User is logged in:', state.user.email);
+
+    // Refresh profile to ensure latest role/balance
+    await refreshUserProfile();
+
     // Set User Info
-    if (userNameEl) userNameEl.textContent = state.user.name || state.user.email.split('@')[0];
+    if (userNameEl && state.user) {
+        userNameEl.textContent = state.user.name || state.user.email.split('@')[0];
+    }
     
-    if (userBalanceEl) userBalanceEl.textContent = formatCurrency(state.user.balance);
+    if (userBalanceEl && state.user) {
+        userBalanceEl.textContent = formatCurrency(state.user.balance);
+    }
+
+    if (!state.user) {
+        console.error('User not logged in or profile refresh failed');
+        content.innerHTML = `
+            <div style="text-align: center; padding: 4rem;">
+                <h3>Please login to view your dashboard</h3>
+                <a href="login.html" class="btn btn-primary" style="margin-top: 1rem;">Login Now</a>
+            </div>
+        `;
+        return;
+    }
 
     // Handle top-up redirect
     const urlParams = new URLSearchParams(window.location.search);
@@ -813,21 +1084,36 @@ async function initDashboard() {
         showTopupInfo();
     }
 
-    content.innerHTML = '<div class="skeleton" style="height: 300px; border-radius: 16px;"></div>';
+    console.log('Showing loader...');
+    const loader = showLoader();
 
     try {
         let purchases = [];
+        console.log('Fetching user purchases for:', state.user.email);
         try {
-            const response = await fetch(`${PYTHON_API_BASE}/user/purchases?email=${state.user.email}`);
-            purchases = await response.json();
+            // Using the api service ensures Authorization header is included
+            const data = await api.get(`/user/purchases?email=${state.user.email}`);
+            purchases = Array.isArray(data) ? data : [];
+            console.log('Purchases fetched via API:', purchases.length);
         } catch (e) {
-            console.warn('Backend history fetch failed, using local storage');
+            console.warn('Backend history fetch failed, checking fallback:', e);
             purchases = JSON.parse(localStorage.getItem(`${APP_NAME}_purchases`) || '[]');
+            console.log('Fallback purchases count:', purchases.length);
         }
         
+        console.log('Rendering dashboard...');
         renderDashboard(purchases, content);
+        console.log('Dashboard rendered successfully');
     } catch (error) {
-        content.innerHTML = `<p>Error loading dashboard: ${error.message}</p>`;
+        console.error('Error in initDashboard:', error);
+        content.innerHTML = `<div style="padding: 2rem; color: #ef4444; text-align: center;">
+            <h3>Error loading dashboard</h3>
+            <p>${error.message}</p>
+            <button onclick="location.reload()" class="btn btn-outline" style="margin-top: 1rem;">Try Again</button>
+        </div>`;
+    } finally {
+        console.log('Hiding loader');
+        hideLoader(loader);
     }
 }
 
@@ -885,7 +1171,7 @@ function renderDashboard(purchases, container) {
                 <div class="action-card" onclick="showTopupInfo()">
                     <span class="action-icon">➕</span>
                     <span class="action-label">Top-up Wallet</span>
-                </a>
+                </div>
                 <a href="https://wa.me/233502832593" target="_blank" class="action-card">
                     <span class="action-icon">💬</span>
                     <span class="action-label">Support</span>
@@ -893,7 +1179,7 @@ function renderDashboard(purchases, container) {
                 <div class="action-card" onclick="location.reload()">
                     <span class="action-icon">🔄</span>
                     <span class="action-label">Refresh</span>
-                </a>
+                </div>
             </div>
         </div>
 
@@ -961,21 +1247,69 @@ function initAuth() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const submitBtn = loginForm.querySelector('button');
+        const isSignup = submitBtn.textContent === 'Sign Up';
         
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Logging in...';
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = isSignup ? 'Creating Account...' : 'Logging in...';
         
-        await login(email, password);
+        if (isSignup) {
+            const name = document.getElementById('name').value;
+            await signup(name, email, password);
+        } else {
+            await login(email, password);
+        }
         
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Login';
+        submitBtn.textContent = originalText;
     });
 }
 
+/**
+ * GOOGLE AUTHENTICATION
+ * Handles the callback from Google One Tap / Sign-in button
+ */
+async function handleGoogleResponse(response) {
+    console.log("Google Token Received:", response.credential);
+    showToast('Connecting to Google...');
+    
+    try {
+        const result = await fetch(`${PYTHON_API_BASE}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: response.credential })
+        });
+        
+        const data = await result.json();
+        
+        if (data.success && data.token) {
+            // Clear any old session first to be safe
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            state.token = data.token;
+            state.user = data.user;
+            localStorage.setItem('token', state.token);
+            localStorage.setItem('user', JSON.stringify(state.user));
+            
+            showToast('✅ Welcome back, ' + (data.user.name || 'User') + '!');
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1500);
+        } else {
+            showToast('❌ Google Sign-In failed: ' + (data.message || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Google Auth Error:', error);
+        showToast('❌ Connection error. Please try again.');
+    }
+}
+
 // Global Exports for HTML inline events
+window.handleGoogleResponse = handleGoogleResponse;
 window.addToCart = addToCart;
 window.logout = logout;
-window.showTopupInfo = () => {
+window.showTopupInfo = async () => {
     const modal = document.getElementById('topup-modal');
     if (modal) modal.style.display = 'flex';
 };
@@ -1103,44 +1437,22 @@ function renderTransactionsTable(purchases) {
 
 window.initiateTopup = () => {
     const amountInput = document.getElementById('topup-amount');
-    const amount = parseFloat(amountInput.value);
+    const amount = parseFloat(amountInput?.value);
     
     if (isNaN(amount) || amount <= 0) {
         showToast('Please enter a valid amount');
         return;
     }
-    
+
     if (!state.user) {
         showToast('Please login to top up');
         return;
     }
     
-    window.payWithPaystack(amount, state.user.email, async (response) => {
-        showToast('Processing your payment...');
-        try {
-            const verification = await fetch(`${PYTHON_API_BASE}/verify-payment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reference: response.reference })
-            });
-            const verifyResult = await verification.json();
-            
-            if (verifyResult.status === 'success') {
-                const currentBalance = parseFloat(state.user.balance || 0);
-                state.user.balance = currentBalance + amount;
-                localStorage.setItem('user', JSON.stringify(state.user));
-                
-                showToast(`Wallet topped up with ${formatCurrency(amount)}!`);
-                hideTopupInfo();
-                initDashboard();
-            } else {
-                showToast('⚠️ Payment verification failed.');
-            }
-        } catch (err) {
-            console.error('Top-up Error:', err);
-            showToast('⚠️ Error processing payment.');
-        }
-    });
+    // Switch to Hosted Paystack Page so users can see the "Paystack Page"
+    // and enter their MoMo number or Card details there.
+    console.log('Redirecting to Paystack Hosted Page...');
+    window.payWithPaystackHosted(amount, state.user.email);
 };
 
 function renderSettings(container) {
@@ -1175,94 +1487,120 @@ function renderSettings(container) {
     `;
 }
 
-window.payWithPaystack = (amount, email, callback) => {
-    if (typeof PaystackPop === 'undefined') {
-        showToast('⚠️ Paystack is still loading. Please wait a moment...');
-        return;
-    }
-
-    if (PAYSTACK_PUBLIC_KEY === 'pk_live_your_actual_key_here') {
-        showToast('⚠️ Paystack Public Key is not set. Please contact admin.');
-        console.error('Paystack Error: PAYSTACK_PUBLIC_KEY is still the placeholder.');
-        return;
-    }
-
-    const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: email,
-        amount: Math.round(amount * 100), // Paystack takes amount in pesewas (GHS * 100)
-        currency: 'GHS',
-        callback: function(response) {
-            console.log('Paystack Payment Successful:', response);
-            if (callback) callback(response);
-        },
-        onClose: function() {
-            showToast('Payment cancelled.');
-        }
-    });
-    handler.openIframe();
-};
-
-window.initiateTopup = () => {
-    const amount = document.getElementById('topup-amount').value;
-    if (!amount || amount <= 0) {
-        showToast('Please enter a valid amount');
-        return;
-    }
-
-    if (!state.user) {
-        showToast('Please login to top up');
-        return;
-    }
-
-    window.payWithPaystack(parseFloat(amount), state.user.email, async (response) => {
-        showToast('Verifying top-up with server...');
+async function handlePaymentCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reference = urlParams.get('reference') || urlParams.get('trxref');
+    
+    if (reference) {
+        console.log('Detected Paystack reference, verifying...', reference);
+        showToast('Verifying payment... Please wait.');
         
-        // SECURITY: Verify top-up payment on backend
         try {
-            const verification = await fetch(`${PYTHON_API_BASE}/verify-payment`, {
+            // Get amount from localStorage (stored during initialization)
+            const expectedAmount = localStorage.getItem('pending_payment_amount');
+            
+            const response = await fetch(`${PYTHON_API_BASE}/verify-payment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reference: response.reference })
+                body: JSON.stringify({ 
+                    reference: reference,
+                    email: state.user ? state.user.email : null,
+                    amount: expectedAmount
+                })
             });
-            const verifyResult = await verification.json();
             
-            if (verifyResult.status === 'success') {
-                const currentBalance = parseFloat(state.user.balance || 0);
-                state.user.balance = currentBalance + parseFloat(amount);
-                localStorage.setItem('user', JSON.stringify(state.user));
+            const result = await response.json();
+            
+            if (result.success) {
+                // Check if there was a pending purchase
+                const pendingPurchaseStr = localStorage.getItem('pending_purchase');
+                if (pendingPurchaseStr) {
+                    const p = JSON.parse(pendingPurchaseStr);
+                    showToast('✅ Payment verified! Processing your bundle...', 'success');
+                    await executePurchase(p.bundleId, p.price, p.phone, p.network, true, p.guestEmail);
+                    localStorage.removeItem('pending_purchase');
+                } else {
+                    showToast('✅ Payment successful! Wallet updated.', 'success');
+                }
                 
-                const balanceEl = document.getElementById('user-balance');
-                if (balanceEl) balanceEl.textContent = formatCurrency(state.user.balance);
+                // Clear the pending payment data
+                localStorage.removeItem('pending_payment_ref');
+                localStorage.removeItem('pending_payment_amount');
                 
-                hideTopupInfo();
-                showToast(`GHS ${amount} added to your wallet!`);
+                // Clean up URL
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+                
+                // Refresh profile to show new balance
+                if (state.token && state.user) {
+                    await refreshUserProfile();
+                }
             } else {
-                showToast('⚠️ Top-up verification failed.');
+                showToast('❌ Payment verification failed: ' + result.message, 'error');
             }
         } catch (err) {
-            console.error('Topup Error:', err);
-            showToast('⚠️ Error verifying top-up.');
+            console.error('Callback Verification Error:', err);
+            showToast('⚠️ Error verifying payment. Please contact support.');
         }
-    });
-};
+    }
+}
 
 // --- Main Router ---
-document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    updateCartUI();
-    updateNavAuthUI(); // New function to handle nav state
-    checkAdminBalance(); // Check iDATA admin balance on load
-    
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'index.html';
-
-    if (page === 'index.html' || page === '') initHome();
-    if (page === 'bundles.html') initShop();
-    if (page === 'details.html') initDetails();
-    if (page === 'dashboard.html') initDashboard();
-    if (page === 'admin.html') initAdmin();
-    if (page === 'login.html') initAuth();
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM Content Loaded - Initializing Router');
+    try {
+        initTheme();
+        updateCartUI();
+        
+        const path = window.location.pathname;
+        const page = path.split('/').pop() || 'index.html';
+        console.log('Current Page:', page);
+        
+        // Check for Paystack payment callback (iDATA Formula)
+        console.log('Checking payment callback...');
+        await handlePaymentCallback();
+        
+        // Refresh user profile on load to ensure correct role and balance
+        if (state.token && state.user) {
+            console.log('Refreshing user profile for:', state.user.email);
+            await refreshUserProfile();
+        }
+        
+        console.log('Updating Nav UI');
+        updateNavAuthUI(); 
+        
+        if (state.user && state.user.role === 'admin') {
+            console.log('Admin user detected - checking balance');
+            checkAdminBalance(); 
+        }
+        
+        console.log('Routing to:', page);
+        if (page === 'index.html' || page === '') initHome();
+        if (page === 'bundles.html') initShop();
+        if (page === 'details.html') initDetails();
+        if (page === 'dashboard.html') {
+            console.log('Initializing Dashboard...');
+            initDashboard();
+        }
+        if (page === 'admin.html') {
+            console.log('Initializing Admin...');
+            initAdmin();
+        }
+        if (page === 'login.html') initAuth();
+    } catch (err) {
+        console.error('CRITICAL INITIALIZATION ERROR:', err);
+        // If on dashboard or admin, show an error message if it's stuck
+        const content = document.getElementById('dashboard-content') || document.getElementById('admin-content');
+        if (content) {
+            content.innerHTML = `
+                <div style="padding: 3rem; text-align: center;">
+                    <h2 style="color: #ef4444;">System Error</h2>
+                    <p>We encountered a problem while loading this page. Please refresh or contact support.</p>
+                    <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem;">Refresh Page</button>
+                </div>
+            `;
+        }
+    }
 });
 
 // --- Admin Panel Logic ---
@@ -1327,7 +1665,20 @@ async function initAdmin() {
                 renderPriceControl();
             }
             if (targetTab === 'users') renderUserManagement();
-            if (targetTab === 'api') renderAPISettings();
+            if (targetTab === 'api') {
+                // API Settings are now handled via environment variables on Render
+                const apiTab = document.getElementById('tab-api');
+                if (apiTab) apiTab.innerHTML = `
+                    <div style="padding: 2rem; text-align: center;">
+                        <h3>API Configuration</h3>
+                        <p class="text-muted">API keys and secrets are securely managed in the production environment.</p>
+                        <div style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-body); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <p><strong>iDATA Integration:</strong> Active ✅</p>
+                            <p><strong>Paystack Gateway:</strong> Active ✅</p>
+                        </div>
+                    </div>
+                `;
+            }
         });
     });
 
@@ -1335,8 +1686,17 @@ async function initAdmin() {
     const balance = await checkAdminBalance();
     if (idataBalanceEl) idataBalanceEl.textContent = formatCurrency(balance);
 
-    // 3. Fetch Global Transactions (All users)
-    let allTransactions = [];
+    // 3. Initial Data Load
+    refreshAdminStats();
+    refreshAdminOrders();
+}
+
+async function refreshAdminStats() {
+    const totalSalesEl = document.getElementById('total-sales');
+    const totalProfitEl = document.getElementById('total-profit');
+    const activeOrdersEl = document.getElementById('active-orders');
+    const totalUsersEl = document.getElementById('total-users');
+
     try {
         const statsData = await api.get('/admin/stats');
         if (statsData.success) {
@@ -1345,49 +1705,58 @@ async function initAdmin() {
             if (totalUsersEl) totalUsersEl.textContent = statsData.stats.total_users;
             if (activeOrdersEl) activeOrdersEl.textContent = statsData.stats.total_orders;
         }
+    } catch (e) {
+        console.error('Failed to fetch admin stats:', e);
+    }
+}
 
+async function refreshAdminOrders() {
+    const transactionsTable = document.getElementById('admin-transactions-table');
+    if (!transactionsTable) return;
+
+    transactionsTable.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;"><span class="spinner"></span> Loading orders...</td></tr>';
+
+    let allTransactions = [];
+    try {
         const ordersData = await api.get('/admin/orders');
         if (ordersData.success) {
             allTransactions = ordersData.orders;
         }
     } catch (e) {
-        console.error('Failed to fetch admin data:', e);
+        console.error('Failed to fetch admin orders:', e);
         allTransactions = JSON.parse(localStorage.getItem(`${APP_NAME}_global_transactions`) || '[]');
     }
 
-    // Render Transactions Table
-    if (transactionsTable) {
-        if (allTransactions.length === 0) {
-            transactionsTable.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No transactions found in system.</td></tr>';
-        } else {
-            transactionsTable.innerHTML = allTransactions.map(t => {
-                const cost = t.cost || (state.bundles.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
-                const profit = t.price - cost;
+    if (allTransactions.length === 0) {
+        transactionsTable.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No transactions found in system.</td></tr>';
+    } else {
+        transactionsTable.innerHTML = allTransactions.map(t => {
+            const cost = t.cost || (state.bundles.find(b => b.id === t.bundleId)?.price) || (t.price * 0.9);
+            const profit = t.price - cost;
 
-                return `
-                    <tr>
-                        <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                            <div style="font-weight: 600;">${t.userEmail || 'Customer'}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">${t.date}</div>
-                        </td>
-                        <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                            <div style="font-weight: 500;">${t.title}</div>
-                            <span class="network-badge ${t.network}">${t.network}</span>
-                        </td>
-                        <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">${t.phone}</td>
-                        <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                            <span class="status-badge ${t.status?.toLowerCase() === 'completed' ? 'success' : 'warning'}">${t.status || 'Processing'}</span>
-                        </td>
-                        <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); color: var(--success); font-weight: 600;">
-                            +${formatCurrency(profit)}
-                        </td>
-                        <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right;">
-                            <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="updateOrderStatus('${t.id}')">Update</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
+            return `
+                <tr>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
+                        <div style="font-weight: 600;">${t.userEmail || 'Customer'}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${t.date}</div>
+                    </td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
+                        <div style="font-weight: 500;">${t.title}</div>
+                        <span class="network-badge ${t.network}">${t.network}</span>
+                    </td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">${t.phone}</td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
+                        <span class="status-badge ${t.status?.toLowerCase() === 'completed' ? 'success' : 'warning'}">${t.status || 'Processing'}</span>
+                    </td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); color: var(--success); font-weight: 600;">
+                        +${formatCurrency(profit)}
+                    </td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right;">
+                        <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="updateOrderStatus('${t.id}')">Update</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 }
 
@@ -1410,7 +1779,7 @@ async function renderUserManagement() {
                         <th style="padding: 1.25rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Role</th>
                     </tr>
                 </thead>
-                <tbody id="admin-users-table">
+                <tbody id="admin-user-table">
                     <tr><td colspan="4" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
                 </tbody>
             </table>
@@ -1419,7 +1788,7 @@ async function renderUserManagement() {
 
     try {
         const data = await api.get('/admin/users');
-        const usersTable = document.getElementById('admin-users-table');
+        const usersTable = document.getElementById('admin-user-table');
         if (data.success && usersTable) {
             usersTable.innerHTML = data.users.map(u => `
                 <tr>
@@ -1430,6 +1799,9 @@ async function renderUserManagement() {
                         <span class="status-badge ${u.role === 'admin' ? 'success' : 'info'}" style="background: ${u.role === 'admin' ? 'var(--danger-light)' : 'var(--primary-light)'}; color: ${u.role === 'admin' ? 'var(--danger)' : 'var(--primary)'};">
                             ${u.role || 'user'}
                         </span>
+                    </td>
+                    <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right;">
+                        <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="updateUserBalance('${u.email}', ${u.balance || 0})">Edit Balance</button>
                     </td>
                 </tr>
             `).join('');
@@ -1525,88 +1897,61 @@ function saveProfitSettings() {
 
 window.saveProfitSettings = saveProfitSettings;
 
-function renderAPISettings() {
-    const paystackKeyInput = document.getElementById('setting-paystack-key');
-    if (paystackKeyInput) {
-        paystackKeyInput.value = localStorage.getItem('paystack_public_key') || '';
-    }
-}
+async function updateOrderStatus(orderId) {
+    const newStatus = prompt('Enter new status (Completed, Failed, Processing):');
+    if (!newStatus) return;
 
-function savePaystackKey() {
-    const keyInput = document.getElementById('setting-paystack-key');
-    if (!keyInput) return;
-    
-    const newKey = keyInput.value.trim();
-    if (!newKey.startsWith('pk_live_') && !newKey.startsWith('pk_test_')) {
-        showToast('Invalid Paystack Key. Must start with pk_live_ or pk_test_');
+    const status = newStatus.charAt(0).toUpperCase() + newStatus.slice(1).toLowerCase();
+    if (!['Completed', 'Failed', 'Processing'].includes(status)) {
+        showToast('Invalid status. Please enter Completed, Failed, or Processing.');
         return;
     }
 
-    localStorage.setItem('paystack_public_key', newKey);
-    showToast('Paystack Public Key updated successfully!');
-    
-    // Refresh page after a delay to ensure the new key is used by the script
-    setTimeout(() => window.location.reload(), 1500);
+    try {
+        const response = await api.post('/admin/order/update', {
+            order_id: orderId,
+            status: status
+        });
+
+        if (response.success) {
+            showToast('Order status updated!');
+            // Don't call initAdmin() - it's too heavy. Just refresh orders.
+            refreshAdminOrders(); 
+        } else {
+            showToast('Failed to update status: ' + response.message);
+        }
+    } catch (error) {
+        showToast('Error updating status: ' + error.message);
+    }
 }
 
-window.savePaystackKey = savePaystackKey;
+async function updateUserBalance(email, currentBalance) {
+    const newBalance = prompt(`Enter new balance for ${email}:`, currentBalance);
+    if (newBalance === null) return;
 
-function renderUserManagement() {
-    const userTable = document.getElementById('admin-user-table');
-    if (!userTable) return;
+    try {
+        const response = await api.post('/admin/user/update-balance', {
+            email: email,
+            balance: parseFloat(newBalance)
+        });
 
-    // Simulated user data (In a real app, this comes from API)
-    const mockUsers = [
-        { name: 'System Admin', email: ADMIN_EMAIL, balance: 0.00, role: 'Admin' },
-        { name: 'John Doe', email: 'john@example.com', balance: 45.50, role: 'Member' },
-        { name: 'Sarah Smith', email: 'sarah@test.com', balance: 120.00, role: 'Member' },
-        { name: 'Michael Boateng', email: 'micky@gh.com', balance: 15.00, role: 'Member' }
-    ];
-
-    userTable.innerHTML = mockUsers.map(u => `
-        <tr>
-            <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">${u.name}</td>
-            <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">${u.email}</td>
-            <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">GHS ${u.balance.toFixed(2)}</td>
-            <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                <span style="padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; background: ${u.role === 'Admin' ? 'rgba(220, 38, 38, 0.1)' : 'rgba(37, 99, 235, 0.1)'}; color: ${u.role === 'Admin' ? 'var(--danger)' : 'var(--primary)'}; font-weight: 600;">
-                    ${u.role}
-                </span>
-            </td>
-            <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right;">
-                <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="showToast('User editing restricted in demo.')">Manage</button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-function renderAPISettings() {
-    // UI is mostly static in the HTML for security demo
-    console.log("API Settings tab loaded");
-}
-
-window.renderUserManagement = renderUserManagement;
-window.renderAPISettings = renderAPISettings;
-
-async function updateOrderStatus(orderId) {
-    const newStatus = prompt('Enter new status (Completed, Failed, Processing):', 'Completed');
-    if (!newStatus) return;
-
-    let allTransactions = JSON.parse(localStorage.getItem(`${APP_NAME}_global_transactions`) || '[]');
-    const orderIndex = allTransactions.findIndex(t => t.id === orderId);
-
-    if (orderIndex !== -1) {
-        allTransactions[orderIndex].status = newStatus;
-        localStorage.setItem(`${APP_NAME}_global_transactions`, JSON.stringify(allTransactions));
-        showToast(`Order status updated to ${newStatus}`);
-        initAdmin(); // Refresh the table
-    } else {
-        showToast('Order not found!');
+        if (response.success) {
+            showToast('User balance updated!');
+            renderUserManagement(); // Refresh the table
+            refreshAdminStats(); // Update the total stats as well
+        } else {
+            showToast('Failed to update balance: ' + response.message);
+        }
+    } catch (error) {
+        showToast('Error updating balance: ' + error.message);
     }
 }
 
 window.initAdmin = initAdmin;
+window.refreshAdminOrders = refreshAdminOrders;
+window.refreshAdminStats = refreshAdminStats;
 window.updateOrderStatus = updateOrderStatus;
+window.updateUserBalance = updateUserBalance;
 window.refreshAdminData = initAdmin;
 
 // --- Live Feed ---
@@ -1654,11 +1999,11 @@ function updateNavAuthUI() {
         const balance = formatCurrency(state.user.balance || 0);
 
         const profileHTML = `
-            <div class="user-profile-nav" onclick="window.location.href='dashboard.html'" title="Go to Dashboard">
-                <div class="user-avatar-sm" style="${state.user.email === ADMIN_EMAIL ? 'background: var(--danger);' : ''}">${initials}</div>
+            <div class="user-profile-nav" onclick="window.location.href='${state.user.role === 'admin' ? 'admin.html' : 'dashboard.html'}'" title="Go to Dashboard">
+                <div class="user-avatar-sm" style="${state.user.role === 'admin' ? 'background: var(--danger);' : ''}">${initials}</div>
                 <div class="user-balance-nav">${balance}</div>
             </div>
-            ${state.user.email === ADMIN_EMAIL ? '<a href="admin.html" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Admin Panel</a>' : ''}
+            ${state.user.role === 'admin' ? '<a href="admin.html" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Admin Panel</a>' : ''}
             <button class="btn btn-outline logout-btn" onclick="logout()">Logout</button>
         `;
         navActions.insertAdjacentHTML('beforeend', profileHTML);
@@ -1675,13 +2020,20 @@ function updateNavAuthUI() {
             const heroButtons = hero.querySelector('.btn-group') || hero.querySelector('div[style*="display: flex"]');
 
             if (title) title.textContent = `Welcome Back, ${state.user.name || state.user.email.split('@')[0]}!`;
-            if (tagline) tagline.textContent = 'Your member-exclusive prices are now active. Browse our bundles and save on every purchase.';
+            if (tagline) tagline.textContent = state.user.role === 'admin' ? 'Administrator access granted. Manage your store, users, and bundles from the dashboard.' : 'Your member-exclusive prices are now active. Browse our bundles and save on every purchase.';
             
             if (heroButtons) {
-                heroButtons.innerHTML = `
-                    <a href="bundles.html" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Browse Bundles</a>
-                    <a href="dashboard.html" class="btn btn-outline" style="padding: 0.8rem 2rem; font-size: 1.1rem;">My Dashboard</a>
-                `;
+                if (state.user.role === 'admin') {
+                    heroButtons.innerHTML = `
+                        <a href="admin.html" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Admin Dashboard</a>
+                        <a href="bundles.html" class="btn btn-outline" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Store View</a>
+                    `;
+                } else {
+                    heroButtons.innerHTML = `
+                        <a href="bundles.html" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.1rem;">Browse Bundles</a>
+                        <a href="dashboard.html" class="btn btn-outline" style="padding: 0.8rem 2rem; font-size: 1.1rem;">My Dashboard</a>
+                    `;
+                }
             }
         }
     } else {

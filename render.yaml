@@ -11,3 +11,11 @@ services:
         value: 3.10.0
       - key: FLASK_ENV
         value: production
+      - key: RENDER_OUTBOUND_IPS
+        value: "74.220.48.0/24,74.220.56.0/24"
+      - key: PAYSTACK_SECRET_KEY
+        sync: false # User should set this manually in Render dashboard
+      - key: IDATA_API_KEY
+        sync: false # User should set this manually in Render dashboard
+      - key: DB_FILE
+        value: "/opt/render/project/src/database.json" # Use persistent disk if available, or stay in repo

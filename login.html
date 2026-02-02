@@ -10,23 +10,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body style="background: linear-gradient(135deg, var(--bg-body) 0%, var(--border-color) 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-    
+<body class="auth-page">
     <div class="auth-container">
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <a href="index.html" class="logo" style="justify-content: center; margin-bottom: 1rem;">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="32" height="32" rx="8" fill="#2563EB"/>
-                    <path d="M10 10H22V14H10V10Z" fill="white"/>
-                    <path d="M10 18H18V22H10V18Z" fill="white"/>
-                </svg>
-                PolymathBundleHub
-            </a>
-            <h2 id="auth-title">Welcome Back</h2>
-            <p class="text-muted" id="auth-subtitle">Please enter your details to sign in.</p>
+        <div class="auth-header">
+            <h2 class="auth-title" id="auth-title">Welcome Back</h2>
+            <p class="auth-subtitle" id="auth-subtitle">Please enter your details to sign in.</p>
         </div>
 
         <form id="login-form">
+            <div class="form-group" id="name-group" style="display: none;">
+                <label class="form-label" for="name">Full Name</label>
+                <input type="text" id="name" class="form-input" placeholder="John Doe">
+            </div>
             <div class="form-group">
                 <label class="form-label" for="email">Email Address</label>
                 <input type="email" id="email" class="form-input" placeholder="name@example.com" required>
@@ -35,13 +30,11 @@
                 <label class="form-label" for="password">Password</label>
                 <input type="password" id="password" class="form-input" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.8rem;">Sign In</button>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.85rem; border-radius: 12px; font-weight: 700;">Sign In</button>
         </form>
 
-        <div style="margin: 1.5rem 0; display: flex; align-items: center; gap: 1rem;">
-            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
-            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">OR</span>
-            <div style="flex: 1; height: 1px; background: var(--border-color);"></div>
+        <div class="auth-divider">
+            <span>OR</span>
         </div>
 
         <div id="g_id_onload"
@@ -49,71 +42,70 @@
               data-context="signin"
              data-ux_mode="popup"
              data-callback="handleGoogleResponse"
-             data-auto_prompt="false">
+             data-auto_prompt="true"
+             data-auto_select="true"
+             data-itp_support="true"
+             data-cancel_on_tap_outside="false">
         </div>
 
-        <div class="g_id_signin"
-             data-type="standard"
-             data-shape="rectangular"
-             data-theme="outline"
-             data-text="signin_with"
-             data-size="large"
-             data-logo_alignment="left"
-             data-width="100%">
+        <div class="google-btn-wrapper">
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="pill"
+                 data-theme="outline"
+                 data-text="continue_with"
+                 data-size="large"
+                 data-logo_alignment="left"
+                 data-width="100%">
+            </div>
         </div>
 
-        <div style="margin-top: 2rem; text-align: center; font-size: 0.9rem;">
-            <p id="auth-toggle-text">Don't have an account? <a href="#" style="color: var(--primary); font-weight: 600;">Create one</a></p>
+        <div class="auth-footer">
+            <p id="auth-toggle-text">Don't have an account? <a href="#" class="auth-link">Create one</a></p>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4.0"></script>
     <script>
         // Simple toggle for demo purposes
-        const toggleLink = document.querySelector('#auth-toggle-text a');
-        const title = document.querySelector('#auth-title');
-        const subtitle = document.querySelector('#auth-subtitle');
-        const submitBtn = document.querySelector('button[type="submit"]');
+        const toggleLink = document.querySelector('.auth-link');
         let isLogin = true;
 
         toggleLink.addEventListener('click', (e) => {
             e.preventDefault();
             isLogin = !isLogin;
-            title.textContent = isLogin ? 'Welcome Back' : 'Create Account';
-            subtitle.textContent = isLogin ? 'Please enter your details to sign in.' : 'Join PolymathBundleHub today.';
-            submitBtn.textContent = isLogin ? 'Sign In' : 'Sign Up';
-            toggleLink.textContent = isLogin ? 'Create one' : 'Sign in instead';
+            
+            document.querySelector('#auth-title').textContent = isLogin ? 'Welcome Back' : 'Create Account';
+            document.querySelector('#auth-subtitle').textContent = isLogin ? 'Please enter your details to sign in.' : 'Join us today to start getting affordable data bundles.';
+            document.querySelector('#login-form button').textContent = isLogin ? 'Sign In' : 'Sign Up';
             document.querySelector('#auth-toggle-text').firstChild.textContent = isLogin ? "Don't have an account? " : "Already have an account? ";
+            toggleLink.textContent = isLogin ? 'Create one' : 'Sign in';
+            
+            const nameGroup = document.querySelector('#name-group');
+            if (nameGroup) {
+                nameGroup.style.display = isLogin ? 'none' : 'block';
+                const nameInput = nameGroup.querySelector('input');
+                if (!isLogin) nameInput.setAttribute('required', '');
+                else nameInput.removeAttribute('required');
+            }
             
             // Hide Google Sign-in on signup page to keep it simple for now
-            const googleBtn = document.querySelector('.g_id_signin');
-            const orDivider = googleBtn.previousElementSibling.previousElementSibling;
-            if (googleBtn) googleBtn.style.display = isLogin ? 'block' : 'none';
-            if (orDivider) orDivider.style.display = isLogin ? 'flex' : 'none';
+            const googleBtnWrapper = document.querySelector('.google-btn-wrapper');
+            const authDivider = document.querySelector('.auth-divider');
+            if (googleBtnWrapper) googleBtnWrapper.style.display = isLogin ? 'block' : 'none';
+            if (authDivider) authDivider.style.display = isLogin ? 'flex' : 'none';
         });
 
-        // Google Login Callback
-        async function handleGoogleResponse(response) {
-            console.log("Google Token Received:", response.credential);
-            showToast('Connecting to Google...');
-            
-            try {
-                const res = await api.post('/auth/google', { token: response.credential });
-                if (res.success) {
-                    state.token = res.token;
-                    state.user = res.user;
-                    localStorage.setItem('token', state.token);
-                    localStorage.setItem('user', JSON.stringify(state.user));
-                    showToast('Welcome ' + res.user.name + '!');
-                    setTimeout(() => window.location.href = 'index.html', 1000);
-                } else {
-                    showToast('Google login failed');
-                }
-            } catch (error) {
-                console.error(error);
-                showToast('Google login error: Could not connect to server');
+        // Programmatic prompt to ensure the bubble appears instantly
+        window.onload = function () {
+            if (window.google && window.google.accounts) {
+                google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        console.log('One Tap display skipped or suppressed');
+                    }
+                });
             }
-        }
+        };
     </script>
 </body>
 </html>

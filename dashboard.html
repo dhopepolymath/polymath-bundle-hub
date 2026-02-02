@@ -63,7 +63,10 @@
                 </nav>
             </aside>
             <section id="dashboard-content">
-                <!-- Loaded dynamically via app.js -->
+                <div style="text-align: center; padding: 4rem;">
+                    <div class="loader-spinner" style="margin: 0 auto 1rem;"></div>
+                    <p>Loading your dashboard...</p>
+                </div>
             </section>
         </div>
     </main>
@@ -80,7 +83,7 @@
             </div>
 
             <div style="margin-bottom: 2rem;">
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount (GHS)</label>
                     <input type="number" id="topup-amount" placeholder="e.g. 50" 
                         style="width: 100%; padding: 0.8rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body); font-size: 1.1rem; font-weight: 700;">
@@ -89,7 +92,7 @@
 
             <div style="background: rgba(37, 99, 235, 0.05); padding: 1.5rem; border-radius: 16px; border: 1px dashed var(--primary); margin-bottom: 2rem;">
                 <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-                    ℹ️ You will be redirected to Paystack to complete your payment via <strong>MoMo, Card, or QR</strong>. Your wallet will be updated instantly.
+                    ℹ️ You will be redirected to the secure <strong>Paystack Payment Page</strong> where you can pay via MoMo or Card.
                 </p>
             </div>
 
@@ -138,7 +141,6 @@
         </div>
     </footer>
 
-    <script src="https://js.paystack.co/v1/inline.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=4.0"></script>
 </body>
 </html>
