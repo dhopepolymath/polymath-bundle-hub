@@ -68,16 +68,6 @@ The system ensures profitability using a multi-layered formula calculated in [ap
 4. **Rate Limiting**: Protects login endpoints from brute-force attacks.
 5. **CORS Configuration**: Restricted to allow cross-origin requests safely during development and production.
 
-## 🚀 Deployment (Render)
-
-The project is configured for [Render](https://render.com/) via [render.yaml](file:///Users/polymath/Desktop/Projects/data%20bundle%20hub/render.yaml).
-
-**Environment Variables Required:**
-- `SESSION_SECRET_KEY`: Random string for JWT signing.
-- `IDATA_API_KEY`: Your iData Ghana API key.
-- `PAYSTACK_SECRET_KEY`: Your Paystack Secret Key.
-- `FLASK_ENV`: Set to `production`.
-
 ## 📊 Reporting
 
 Run the automated report generator to see business performance:
