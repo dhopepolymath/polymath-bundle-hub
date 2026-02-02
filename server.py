@@ -1,12 +1,15 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
 import requests
 import json
 import os
 import base64
 import hmac
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import wraps
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -16,11 +19,88 @@ app = Flask(__name__, static_folder='.')
 CORS(app, resources={r"/*": {"origins": "*"}}) # Allow all origins for debugging connection issues
 
 # --- Configuration ---
-# SECURITY: Use environment variables for sensitive data
+# Security: Use a strong secret key from environment or a fallback for development
+SECRET_KEY = os.environ.get("SESSION_SECRET_KEY", "dev-secret-polymath-hub-2024-stronger-key")
+
+# Token Required Decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(" ")[1]
+        
+        if not token:
+            return jsonify({'message': 'Session expired or invalid. Please login again.', 'success': False}), 401
+        
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            db = load_db()
+            current_user = next((u for u in db.get("users", []) if u["email"] == data['email']), None)
+            
+            if not current_user:
+                return jsonify({'message': 'User not found!', 'success': False}), 401
+                
+            # Global Logout Check: Verify token version
+            if 'token_version' in data:
+                db_token_version = current_user.get('token_version', 1)
+                if data['token_version'] != db_token_version:
+                    return jsonify({'message': 'Session invalidated. You have been logged out from all devices.', 'success': False}), 401
+            
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Your session has expired. Please login again.', 'success': False}), 401
+        except Exception as e:
+            return jsonify({'message': 'Invalid session. Please login again.', 'success': False}), 401
+            
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+def create_token(email, token_version=1):
+    return jwt.encode({
+        'email': email,
+        'token_version': token_version,
+        'exp': datetime.utcnow() + timedelta(days=7) # 7 days session
+    }, SECRET_KEY, algorithm="HS256")
+
+# Admin Required Decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(" ")[1]
+        
+        if not token:
+            return jsonify({'message': 'Admin session required.', 'success': False}), 401
+        
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            db = load_db()
+            current_user = next((u for u in db.get("users", []) if u["email"] == data['email']), None)
+            
+            if not current_user or current_user.get("role") != 'admin':
+                return jsonify({'message': 'Unauthorized. Admin access required!', 'success': False}), 403
+                
+            # Global Logout Check: Verify token version
+            if 'token_version' in data:
+                db_token_version = current_user.get('token_version', 1)
+                if data['token_version'] != db_token_version:
+                    return jsonify({'message': 'Session invalidated. Please login again.', 'success': False}), 401
+                    
+        except Exception as e:
+            return jsonify({'message': 'Invalid session.', 'success': False}), 401
+            
+        return f(current_user, *args, **kwargs)
+    return decorated
+
 IDATA_API_KEY = os.environ.get("IDATA_API_KEY")
 if not IDATA_API_KEY:
     print("WARNING: IDATA_API_KEY not set! Check your .env file.")
-IDATA_BASE_URL = "https://idatagh.com/api/v1"
+IDATA_BASE_URL = "https://idatagh.com/wp-json/custom/v1"
 
 PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY")
 
@@ -30,6 +110,12 @@ if PAYSTACK_SECRET_KEY:
     print(f"DEBUG: Using Paystack Key: {masked_key}")
 else:
     print("DEBUG: CRITICAL - NO PAYSTACK KEY FOUND")
+
+if IDATA_API_KEY:
+    masked_idata = f"{IDATA_API_KEY[:5]}...{IDATA_API_KEY[-3:]}"
+    print(f"DEBUG: Using iDATA Key: {masked_idata}")
+else:
+    print("DEBUG: CRITICAL - NO iDATA KEY FOUND")
 
 if not PAYSTACK_SECRET_KEY:
     print("WARNING: PAYSTACK_SECRET_KEY not set! Check your .env file.")
@@ -143,28 +229,84 @@ def get_bundle_by_id(bundle_id):
     bundle = next((b for b in BUNDLES if b["id"] == bundle_id), None)
     return jsonify(bundle)
 
+# Security: Simple Rate Limiting for Login
+login_attempts = {}
+
+def check_rate_limit(email):
+    now = datetime.now()
+    if email not in login_attempts:
+        return True
+        
+    attempt = login_attempts[email]
+    # If 15 minutes have passed, reset
+    if (now - attempt["first_attempt"]).total_seconds() > 900:
+        del login_attempts[email]
+        return True
+        
+    if attempt["count"] >= 5:
+        return False
+        
+    return True
+
+def record_login_attempt(email, success):
+    now = datetime.now()
+    if success:
+        if email in login_attempts:
+            del login_attempts[email]
+        return
+
+    if email not in login_attempts:
+        login_attempts[email] = {"count": 1, "first_attempt": now}
+    else:
+        login_attempts[email]["count"] += 1
+
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.json
     email = data.get("email")
     password = data.get("password")
     
+    if not email or not password:
+        return jsonify({"success": False, "message": "Email and password are required"}), 400
+        
+    # Rate limiting check
+    if not check_rate_limit(email):
+        return jsonify({"success": False, "message": "Too many failed login attempts. Please try again in 15 minutes."}), 429
+
     db = load_db()
-    user = next((u for u in db.get("users", []) if u["email"] == email), None)
+    users = db.get("users", [])
+    user_idx = next((i for i, u in enumerate(users) if u["email" ] == email), None)
     
-    if user and user.get("password") == password:
-        token = "demo-token-" + os.urandom(8).hex()
-        return jsonify({
-            "success": True,
-            "token": token,
-            "user": {
-                "email": user["email"],
-                "name": user.get("name", "User"),
-                "balance": user.get("balance", 0.0),
-                "role": user.get("role", "user")
-            }
-        })
+    if user_idx is not None:
+        user = users[user_idx]
+        stored_password = user.get("password")
+        
+        # Migration: Handle plaintext passwords if they still exist
+        is_correct = False
+        if stored_password and not (stored_password.startswith('pbkdf2:sha256:') or stored_password.startswith('scrypt:')):
+            if stored_password == password:
+                is_correct = True
+                # Automatically upgrade to hash
+                user["password"] = generate_password_hash(password)
+                save_db(db)
+        else:
+            is_correct = check_password_hash(stored_password, password)
+            
+        if is_correct:
+            record_login_attempt(email, True) # Reset attempts
+            token = create_token(email, user.get('token_version', 1))
+            return jsonify({
+                "success": True,
+                "token": token,
+                "user": {
+                    "email": user["email"],
+                    "name": user.get("name", "User"),
+                    "balance": user.get("balance", 0.0),
+                    "role": user.get("role", "user")
+                }
+            })
     
+    record_login_attempt(email, False) # Record failure
     return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
 @app.route("/api/auth/google", methods=["POST"])
@@ -208,15 +350,16 @@ def google_auth():
         user = {
             "name": name,
             "email": email,
-            "password": "google-auth-protected", # Placeholder
+            "password": generate_password_hash(os.urandom(16).hex()), # Secure random password for google users
             "balance": 0.0,
             "role": role,
-            "auth_type": "google"
+            "auth_type": "google",
+            "token_version": 1
         }
         db.setdefault("users", []).append(user)
         save_db(db)
     
-    token = "demo-google-token-" + os.urandom(8).hex()
+    token = create_token(email, user.get('token_version', 1))
     return jsonify({
         "success": True,
         "token": token,
@@ -235,27 +378,49 @@ def signup():
     password = data.get("password")
     name = data.get("name", "New User")
     
+    if not email or not password:
+        return jsonify({"success": False, "message": "Email and password are required"}), 400
+        
     db = load_db()
     if any(u["email"] == email for u in db.get("users", [])):
         return jsonify({"success": False, "message": "Email already exists"}), 400
     
     new_user = {
         "email": email,
-        "password": password,
+        "password": generate_password_hash(password), # Securely hash password
         "name": name,
         "balance": 0.0,
-        "role": "user"
+        "role": "user",
+        "token_version": 1
     }
+    
     db.setdefault("users", []).append(new_user)
     save_db(db)
     
-    return jsonify({"success": True, "message": "Signup successful"})
+    return jsonify({"success": True, "message": "User created successfully"})
+
+@app.route("/api/logout-all", methods=["POST"])
+@token_required
+def logout_all(current_user):
+    db = load_db()
+    users = db.get("users", [])
+    for user in users:
+        if user["email"] == current_user["email"]:
+            user["token_version"] = user.get("token_version", 1) + 1
+            break
+    save_db(db)
+    return jsonify({"success": True, "message": "Logged out from all devices successfully"})
 
 # --- Admin Endpoints ---
 
+@app.route("/api/admin/verify", methods=["POST"])
+@admin_required
+def admin_verify(current_user):
+    return jsonify({"success": True, "message": "Admin verified"})
+
 @app.route("/api/admin/stats", methods=["GET"])
-def admin_stats():
-    # In a real app, you would check the token for admin role
+@admin_required
+def admin_stats(current_user):
     db = load_db()
     users = db.get("users", [])
     orders = db.get("orders", [])
@@ -275,16 +440,24 @@ def admin_stats():
     })
 
 @app.route("/api/admin/users", methods=["GET"])
-def admin_users():
+@admin_required
+def admin_users(current_user):
     db = load_db()
+    # Filter out sensitive data like password hashes when sending to admin panel
+    safe_users = []
+    for u in db.get("users", []):
+        safe_user = u.copy()
+        if "password" in safe_user: del safe_user["password"]
+        safe_users.append(safe_user)
+        
     return jsonify({
         "success": True,
-        "users": db.get("users", [])
+        "users": safe_users
     })
 
 @app.route("/api/admin/orders", methods=["GET"])
-def admin_orders():
-    # SECURITY: In a real app, verify admin role here
+@admin_required
+def admin_orders(current_user):
     db = load_db()
     orders = db.get("orders", [])
     
@@ -312,7 +485,8 @@ def admin_orders():
     })
 
 @app.route("/api/admin/order/update", methods=["POST"])
-def admin_update_order():
+@admin_required
+def admin_update_order(current_user):
     data = request.json
     order_id = data.get("order_id")
     new_status = data.get("status")
@@ -335,7 +509,8 @@ def admin_update_order():
         return jsonify({"success": False, "message": "Order not found"}), 404
 
 @app.route("/api/admin/user/update-balance", methods=["POST"])
-def admin_update_user_balance():
+@admin_required
+def admin_update_user_balance(current_user):
     data = request.json
     email = data.get("email")
     new_balance = data.get("balance")
@@ -357,7 +532,7 @@ def admin_update_user_balance():
     else:
         return jsonify({"success": False, "message": "User not found"}), 404
 
-@app.route("/api/place-order", methods=["POST"])
+@app.route("/api/buy", methods=["POST"])
 def place_order():
     # SECURITY: Only the backend knows the IDATA_API_KEY
     data = request.json
@@ -374,12 +549,64 @@ def place_order():
     }
     
     try:
-        # Simulating secure response for demo
+        # 1. ATTEMPT AUTOMATED PURCHASE VIA iDATA API
+        # The common endpoint for iDATA is /buy
+        idata_url = f"{IDATA_BASE_URL}/buy"
+        idata_headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "PolymathBundleHub/1.0"
+        }
+        
+        # Real iDATA API call
+        print("\n" + "="*50)
+        print(f"🚀 [iDATA] INITIATING PURCHASE")
+        print(f"📡 URL: {idata_url}")
+        print(f"📱 Recipient: {payload['beneficiary']}")
+        print(f"📦 Network: {payload['network']}")
+        print("="*50)
+        
+        try:
+            idata_response = requests.post(idata_url, json=payload, headers=idata_headers, timeout=30)
+            
+            # Log status code
+            print(f"📡 [iDATA] Status Code: {idata_response.status_code}")
+            
+            # Check if response is empty
+            if not idata_response.text:
+                print("❌ [iDATA] Empty response received")
+                idata_success = False
+                idata_message = "Empty response from iDATA API"
+                idata_remote_id = None
+            else:
+                try:
+                    idata_data = idata_response.json()
+                    print(f"✅ [iDATA] Response Received: {idata_data}")
+                    
+                    # Check if iDATA accepted the request
+                    # Usually success is indicated by 'status': 'success' or 'code': 200
+                    idata_success = idata_data.get("status") == "success" or idata_data.get("success") == True or idata_data.get("code") == 200
+                    idata_message = idata_data.get("message", "Request received")
+                    idata_remote_id = idata_data.get("order_id") or idata_data.get("id")
+                except json.JSONDecodeError:
+                    print(f"❌ [iDATA] Non-JSON response: {idata_response.text[:200]}...")
+                    idata_success = False
+                    idata_message = f"Invalid API Response: {idata_response.text[:100]}"
+                    idata_remote_id = None
+        except Exception as api_err:
+            print(f"[iDATA] API Error: {api_err}")
+            idata_success = False
+            idata_message = f"Connection error: {str(api_err)}"
+            idata_remote_id = None
+
+        # 2. GENERATE LOCAL ORDER RECORD
         order_id = "SEC-" + os.urandom(4).hex().upper()
-        print(f"[SECURITY] Securely processing order {order_id} for {payload['beneficiary']}...")
         
         # Log transaction in DB
         db = load_db()
+        
+        # Determine status based on iDATA success
+        # If automation fails, we still record the order as "Pending" for manual fulfillment
+        final_status = "Completed" if idata_success else "Pending"
         
         # If user is logged in, deduct from balance
         user_email = data.get("userEmail")
@@ -398,6 +625,7 @@ def place_order():
         
         new_order = {
             "id": order_id,
+            "idata_id": idata_remote_id,
             "userEmail": data.get("userEmail"),
             "network": data.get("network"),
             "beneficiary": data.get("beneficiary"),
@@ -405,7 +633,8 @@ def place_order():
             "package_id": package_id,
             "title": bundle["title"] if bundle else f"Bundle {package_id}",
             "price": bundle["price"] if bundle else 0.0,
-            "status": "Processing",
+            "status": final_status,
+            "idata_message": idata_message,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         db.setdefault("orders", []).insert(0, new_order)
@@ -427,7 +656,9 @@ def place_order():
         return jsonify({
             "success": True,
             "order_id": order_id,
-            "status": "Processing"
+            "status": final_status,
+            "idata_success": idata_success,
+            "message": idata_message
         })
     except Exception as e:
         return jsonify({"success": False, "message": "Backend processing error"}), 500
@@ -435,9 +666,14 @@ def place_order():
 @app.route("/api/initialize-payment", methods=["POST"])
 def initialize_payment():
     # SECURITY: Initialize Paystack transaction on the server
+    if not PAYSTACK_SECRET_KEY:
+        print("CRITICAL: Paystack Secret Key is missing!")
+        return jsonify({"success": False, "message": "Paystack configuration error. Please contact admin."}), 500
+        
     data = request.json
     email = data.get("email")
     amount = data.get("amount") # Amount in GHS
+    user_name = data.get("userName", "Customer")
     
     if not email or not amount:
         return jsonify({"status": "failed", "message": "Email and amount required"}), 400
@@ -455,7 +691,27 @@ def initialize_payment():
             "email": email,
             "amount": int(float(amount) * 100),
             "currency": "GHS",
-            "callback_url": request.headers.get("Referer") # Redirect back to where they came from
+            "label": "PolymathBundleHub Wallet Top-up",
+            "callback_url": request.headers.get("Referer"), # Redirect back to where they came from
+            "metadata": {
+                "custom_fields": [
+                    {
+                        "display_name": "Customer Name",
+                        "variable_name": "customer_name",
+                        "value": user_name
+                    },
+                    {
+                        "display_name": "Business Name",
+                        "variable_name": "business_name",
+                        "value": "PolymathBundleHub"
+                    },
+                    {
+                        "display_name": "Payment For",
+                        "variable_name": "payment_for",
+                        "value": "Wallet Top-up"
+                    }
+                ]
+            }
         }
         
         # Use session with retries for Paystack API to handle network instability
@@ -481,6 +737,10 @@ def initialize_payment():
 @app.route("/api/charge-momo", methods=["POST"])
 def charge_momo():
     # SECURITY: Initiate direct MoMo charge (iDATA Style)
+    if not PAYSTACK_SECRET_KEY:
+        print("CRITICAL: Paystack Secret Key is missing!")
+        return jsonify({"success": False, "message": "Paystack configuration error. Please contact admin."}), 500
+        
     data = request.json
     email = data.get("email")
     amount = data.get("amount") # Amount in GHS
@@ -537,6 +797,10 @@ def charge_momo():
 @app.route("/api/verify-payment", methods=["POST"])
 def verify_payment():
     # SECURITY: Verify Paystack transaction on the server to prevent spoofing
+    if not PAYSTACK_SECRET_KEY:
+        print("CRITICAL: Paystack Secret Key is missing!")
+        return jsonify({"success": False, "message": "Paystack configuration error. Please contact admin."}), 500
+        
     data = request.json
     reference = data.get("reference")
     email = data.get("email")
@@ -640,21 +904,14 @@ def paystack_webhook():
     return "OK", 200
 
 @app.route("/api/user/profile", methods=["GET"])
-def get_profile():
-    email = request.args.get("email")
-    if not email:
-        return jsonify({"error": "Email required"}), 400
-    
-    db = load_db()
-    user = next((u for u in db.get("users", []) if u["email"] == email), None)
-    if user:
-        return jsonify({
-            "email": user["email"],
-            "name": user.get("name", "User"),
-            "balance": user.get("balance", 0.0),
-            "role": user.get("role", "user")
-        })
-    return jsonify({"error": "User not found"}), 404
+@token_required
+def get_user_profile(current_user):
+    return jsonify({
+        "email": current_user["email"],
+        "name": current_user.get("name", "User"),
+        "balance": current_user.get("balance", 0.0),
+        "role": current_user.get("role", "user")
+    })
 
 @app.route("/api/admin/verify", methods=["POST"])
 def verify_admin():
@@ -669,13 +926,66 @@ def verify_admin():
 
 @app.route("/api/admin/balance", methods=["GET"])
 def check_admin_balance():
-    # SECURITY: Backend proxies the balance check
+    # SECURITY: Backend proxies the balance check to iDATA
     try:
-        # response = requests.get(f"{IDATA_BASE_URL}/balance?api_key={IDATA_API_KEY}")
-        # return response.json()
-        return jsonify({"balance": 1000.00, "currency": "GHS"})
+        url = f"{IDATA_BASE_URL}/balance?api_key={IDATA_API_KEY}"
+        headers = {
+            "User-Agent": "PolymathBundleHub/1.0"
+        }
+        
+        print(f"💰 [iDATA] Checking API Balance...")
+        response = requests.get(url, headers=headers, timeout=20)
+        
+        # Handle 404 or other errors from iDATA
+        if response.status_code == 404:
+            print(f"⚠️ [iDATA] Balance endpoint not found (404). Returning fallback balance.")
+            return jsonify({
+                "success": False,
+                "balance": 0.0,
+                "message": "Balance endpoint not available on iDATA"
+            })
+
+        # Check for non-JSON response
+        if not response.text:
+            return jsonify({
+                "success": False,
+                "balance": 0.0,
+                "message": "Empty response from iDATA"
+            })
+            
+        try:
+            balance_data = response.json()
+        except json.JSONDecodeError:
+            print(f"❌ [iDATA] Non-JSON balance response: {response.text[:200]}...")
+            return jsonify({
+                "success": False,
+                "balance": 0.0,
+                "message": "Invalid response format from iDATA"
+            })
+        
+        # If the API returns a success status, return the real balance
+        if balance_data.get("status") == "success" or balance_data.get("success") == True:
+            print(f"💵 [iDATA] Current Balance: {balance_data.get('balance')} {balance_data.get('currency', 'GHS')}")
+            return jsonify({
+                "success": True,
+                "balance": balance_data.get("balance", 0.0),
+                "currency": balance_data.get("currency", "GHS")
+            })
+        else:
+            # If API call fails or key is invalid, return 0 but show error
+            return jsonify({
+                "success": False,
+                "balance": 0.0,
+                "message": balance_data.get("message", "Could not fetch balance")
+            })
+            
     except Exception as e:
-        return jsonify({"error": "Unauthorized"}), 403
+        print(f"⚠️ [iDATA] Balance check error: {e}")
+        return jsonify({
+            "success": False, 
+            "balance": 0.0,
+            "message": "iDATA connection timeout or error. Please check your internet or iDATA status."
+        }), 200 # Return 200 to keep UI stable
 
 @app.route("/api/user/purchases", methods=["GET"])
 def get_user_purchases():
@@ -719,6 +1029,42 @@ def sync_transaction():
         return jsonify({"success": True, "message": "Transaction synced"})
     
     return jsonify({"success": True, "message": "Transaction already exists"})
+
+@app.route("/api/user/clear-history", methods=["POST"])
+@token_required
+def clear_user_history(current_user):
+    db = load_db()
+    email = current_user["email"]
+    
+    # Filter out orders belonging to the current user
+    original_count = len(db.get("orders", []))
+    db["orders"] = [o for o in db.get("orders", []) if o.get("userEmail") != email]
+    new_count = len(db["orders"])
+    
+    save_db(db)
+    
+    return jsonify({
+        "success": True, 
+        "message": f"Cleared {original_count - new_count} records from your history."
+    })
+
+@app.route("/api/admin/clear-history", methods=["POST"])
+@admin_required
+def clear_order_history(current_user):
+    db = load_db()
+    db["orders"] = []
+    save_db(db)
+    
+    # Also clear the backup file
+    try:
+        backup_file = "purchases_backup.json"
+        if os.path.exists(backup_file):
+            with open(backup_file, "w") as f:
+                json.dump([], f, indent=4)
+    except Exception as e:
+        print(f"Error clearing backup: {e}")
+        
+    return jsonify({"success": True, "message": "Order history cleared successfully"})
 
 @app.route("/")
 def serve_index():

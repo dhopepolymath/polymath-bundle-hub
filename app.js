@@ -1,14 +1,14 @@
 /**
  * PolymathBundleHub - Main Application Logic
- * Version: 4.0
+ * Version: 4.1
  */
-console.log('🚀 PolymathBundleHub v4.0 - Direct MoMo Active');
+console.log('🚀 PolymathBundleHub v4.1 - Initializing...');
 
 // Configuration
 const USE_PYTHON_BACKEND = true; // Security: Enabled backend to protect API keys
 // For local development, use localhost. For production, update this to your backend URL.
-const isProduction = window.location.hostname.endsWith('onrender.com');
-const isLocal = !isProduction;
+const isProduction = window.location.hostname.endsWith('onrender.com') || window.location.hostname.endsWith('github.io');
+const isLocal = !isProduction && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.'));
 
 // Use relative paths when local to avoid CORS/IP issues across different browsers/devices
 const PYTHON_API_BASE = isLocal 
@@ -20,11 +20,13 @@ const API_BASE_URL = USE_PYTHON_BACKEND ? PYTHON_API_BASE : IDATA_API_BASE;
 
 // Only log config in development
 if (isLocal) {
-    console.log('--- APP CONFIG ---');
-    console.log('isLocal:', isLocal);
-    console.log('API_BASE_URL:', API_BASE_URL);
-    console.log('------------------');
-}
+        console.log('--- APP CONFIG ---');
+        console.log('isLocal:', isLocal);
+        console.log('Hostname:', window.location.hostname);
+        console.log('Protocol:', window.location.protocol);
+        console.log('API_BASE_URL:', API_BASE_URL);
+        console.log('------------------');
+    }
 // SECURITY: API_KEY is now hidden in the Python backend. 
 // For frontend-only mode, it uses the placeholder.
 const API_KEY = USE_PYTHON_BACKEND ? 'HIDDEN_IN_BACKEND' : 'tera_live_c695fb80bf3c9de198a0ee4a81173ea7'; 
@@ -109,6 +111,14 @@ const api = {
             }
             
             const response = await fetch(url, { headers });
+            
+            // Handle unauthorized / expired token
+            if (response.status === 401) {
+                console.warn('Session expired or unauthorized. Logging out.');
+                logout();
+                return;
+            }
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.message || `API error: ${response.status}`);
@@ -149,6 +159,13 @@ const api = {
                 body: JSON.stringify(data)
             });
             
+            // Handle unauthorized / expired token
+            if (response.status === 401 && endpoint !== '/login' && endpoint !== '/auth/google') {
+                console.warn('Session expired or unauthorized. Logging out.');
+                logout();
+                return;
+            }
+
             const result = await response.json();
             
             if (!response.ok) {
@@ -175,7 +192,11 @@ window.payWithPaystackHosted = async (amount, email, callback) => {
         const response = await fetch(`${PYTHON_API_BASE}/initialize-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount, email })
+            body: JSON.stringify({ 
+                amount, 
+                email,
+                userName: state.user ? state.user.name : 'Customer'
+            })
         });
         
         const data = await response.json();
@@ -278,16 +299,9 @@ window.payWithPaystackDirect = async (amount, email, phone, provider, callback) 
  * If balance is low, it warns the user/admin.
  */
 async function checkAdminBalance() {
-    // If API key is still the default or dummy, return a mock balance for demo
-    if (API_KEY === 'YOUR_API_KEY_HERE' || API_KEY.startsWith('tera_live')) {
-        // Even with a real key, we might want to skip this check if the endpoint doesn't exist yet
-        // For now, let's allow the real key to bypass the maintenance block
-        return 1000; 
-    }
-
     try {
         const data = await api.get('/admin/balance'); 
-        if (data && data.balance !== undefined) {
+        if (data && data.success) {
             const balance = parseFloat(data.balance);
             console.log(`[iDATA] Admin Balance: GHS ${balance}`);
             
@@ -295,6 +309,8 @@ async function checkAdminBalance() {
                 showLowBalanceWarning(balance);
             }
             return balance;
+        } else if (data && data.balance !== undefined) {
+            return parseFloat(data.balance);
         }
         return 0;
     } catch (error) {
@@ -555,8 +571,10 @@ function closePurchaseModal() {
 
 // --- Auth Functions ---
 async function login(email, password) {
+    console.log('Attempting login for:', email);
     try {
         const response = await api.post('/login', { email, password });
+        console.log('Login response received:', response);
         if (response.success && response.token) {
             // Clear any old session first to be safe
             localStorage.removeItem('token');
@@ -567,11 +585,17 @@ async function login(email, password) {
             localStorage.setItem('token', state.token);
             localStorage.setItem('user', JSON.stringify(state.user));
             showToast('Login successful!');
-            setTimeout(() => window.location.href = 'dashboard.html', 1000);
+            
+            // Redirect based on role
+            const redirectPage = state.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+            console.log('Redirecting to:', redirectPage);
+            setTimeout(() => window.location.href = redirectPage, 1000);
         } else {
+            console.warn('Login failed:', response.message);
             showToast('Login failed: ' + (response.message || 'Invalid credentials'));
         }
     } catch (error) {
+        console.error('Login error:', error);
         showToast('Login error: ' + (error.message || 'Could not connect to server'));
     }
 }
@@ -598,6 +622,23 @@ function logout() {
     window.location.href = 'index.html';
 }
 
+async function logoutAll() {
+    if (!confirm('This will log you out from all devices. Continue?')) return;
+    
+    try {
+        const response = await api.post('/logout-all', {});
+        if (response && response.success) {
+            showToast('✅ Logged out from all devices');
+            setTimeout(() => logout(), 1500);
+        } else {
+            showToast('❌ Failed to logout from all devices');
+        }
+    } catch (err) {
+        console.error('Logout All Error:', err);
+        showToast('❌ Error connecting to server');
+    }
+}
+
 async function refreshUserProfile() {
     if (!state.token || !state.user) return;
     try {
@@ -612,10 +653,12 @@ async function refreshUserProfile() {
             const path = window.location.pathname;
             const page = path.split('/').pop() || 'index.html';
             
+            // Allow admins to view the dashboard if they want to, but keep the user-to-dashboard redirect
+            if (state.user.role === 'user' && page === 'admin.html') {
+                window.location.href = 'dashboard.html';
+            }
             if (state.user.role === 'admin' && page === 'dashboard.html') {
                 window.location.href = 'admin.html';
-            } else if (state.user.role === 'user' && page === 'admin.html') {
-                window.location.href = 'dashboard.html';
             }
         }
     } catch (error) {
@@ -634,6 +677,34 @@ function formatCurrency(amount) {
     } catch (e) {
         console.error('formatCurrency error:', e);
         return 'GHS ' + (parseFloat(amount || 0) || 0).toFixed(2);
+    }
+}
+
+/**
+ * Standardizes date display across the application
+ */
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    try {
+        // If it's already in the standard format (YYYY-MM-DD HH:MM:SS), return it
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+            return dateStr;
+        }
+        
+        // Handle ISO strings or other parseable formats
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        const h = String(date.getHours()).padStart(2, '0');
+        const i = String(date.getMinutes()).padStart(2, '0');
+        const s = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${y}-${m}-${d} ${h}:${i}:${s}`;
+    } catch (e) {
+        return dateStr;
     }
 }
 
@@ -994,7 +1065,7 @@ async function executePurchase(bundleId, price, phone, network, isPrepaid, guest
 
     try {
         // --- 1. SEND TO PROVIDER ---
-        const result = await api.post('/place-order', {
+        const result = await api.post('/buy', {
             network: network,
             beneficiary: phone,
             "pa_data-bundle-packages": bundleId,
@@ -1060,7 +1131,79 @@ async function initDashboard() {
 
     // Set User Info
     if (userNameEl && state.user) {
-        userNameEl.textContent = state.user.name || state.user.email.split('@')[0];
+        let name = state.user.name || state.user.email.split('@')[0];
+        // If it's a generic "Admin User" or "Admin", don't show it for non-admins
+        if (state.user.role !== 'admin' && (name.toLowerCase().includes('admin'))) {
+            name = state.user.email.split('@')[0];
+        }
+        
+        userNameEl.innerHTML = `
+            ${name} 
+            <span class="role-badge ${state.user.role}" style="
+                font-size: 0.7rem; 
+                padding: 2px 8px; 
+                border-radius: 6px; 
+                margin-left: 8px;
+                text-transform: uppercase; 
+                font-weight: 800;
+                ${state.user.role === 'admin' ? 'background: #dc2626; color: white;' : 'background: #2563eb; color: white;'}
+            ">
+                ${state.user.role}
+            </span>
+        `;
+        
+        // Add Admin Button if user is admin
+        if (state.user.role === 'admin') {
+            const sidebarNav = document.querySelector('.dashboard-sidebar nav');
+            if (sidebarNav && !document.getElementById('admin-link')) {
+                const adminLink = document.createElement('a');
+                adminLink.href = 'admin.html';
+                adminLink.id = 'admin-link';
+                adminLink.className = 'sidebar-link';
+                adminLink.style.background = 'rgba(37, 99, 235, 0.1)';
+                adminLink.style.color = 'var(--primary)';
+                adminLink.style.fontWeight = '700';
+                adminLink.innerHTML = '<span style="margin-right: 10px;">🛡️</span> Admin Panel';
+                // Insert before support link or at the end
+                const supportLink = Array.from(sidebarNav.querySelectorAll('.sidebar-link')).find(a => a.textContent.includes('Support'));
+                if (supportLink) {
+                    sidebarNav.insertBefore(adminLink, supportLink);
+                } else {
+                    sidebarNav.appendChild(adminLink);
+                }
+            }
+        }
+
+        // Add Logout All Devices button to sidebar
+        const sidebarNav = document.querySelector('.dashboard-sidebar nav');
+        if (sidebarNav && !document.getElementById('logout-all-link')) {
+            const logoutAllLink = document.createElement('a');
+            logoutAllLink.href = '#';
+            logoutAllLink.id = 'logout-all-link';
+            logoutAllLink.className = 'sidebar-link';
+            logoutAllLink.style.marginTop = '2rem';
+            logoutAllLink.style.color = '#ef4444';
+            logoutAllLink.style.border = '1px dashed rgba(239, 68, 68, 0.3)';
+            logoutAllLink.innerHTML = '<span style="margin-right: 10px;">🔓</span> Logout All Devices';
+            logoutAllLink.onclick = async (e) => {
+                e.preventDefault();
+                if (confirm('Are you sure you want to log out from all devices? This will invalidate all your active sessions.')) {
+                    try {
+                        const res = await api.post('/logout-all');
+                        if (res.success) {
+                            showToast('Successfully logged out from all devices');
+                            logout();
+                        } else {
+                            showToast(res.message || 'Failed to logout from all devices', 'error');
+                        }
+                    } catch (err) {
+                        console.error('Logout all error:', err);
+                        showToast('Failed to connect to server', 'error');
+                    }
+                }
+            };
+            sidebarNav.appendChild(logoutAllLink);
+        }
     }
     
     if (userBalanceEl && state.user) {
@@ -1127,7 +1270,7 @@ function renderDashboard(purchases, container) {
         container.innerHTML = `
             <div style="text-align: center; padding: 4rem; background: var(--bg-card); border-radius: 20px; border: 1px dashed var(--border-color);">
                 <div style="font-size: 3rem; margin-bottom: 1rem;">📦</div>
-                <h3>Welcome to your Dashboard!</h3>
+                <h3>Welcome${state.user.role === 'admin' ? ' Admin' : ''}!</h3>
                 <p class="text-muted" style="margin-bottom: 2rem;">Start your journey by purchasing your first data bundle.</p>
                 <a href="bundles.html" class="btn btn-primary">Browse Bundles</a>
             </div>
@@ -1136,6 +1279,15 @@ function renderDashboard(purchases, container) {
     }
 
     container.innerHTML = `
+        <!-- Account Type Header -->
+        <div style="background: ${state.user.role === 'admin' ? '#ef4444' : '#2563eb'}; color: white; padding: 0.75rem 1.5rem; border-radius: 12px; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.25rem;">${state.user.role === 'admin' ? '🛡️' : '👤'}</span>
+                <span style="font-weight: 800; letter-spacing: 0.05em; font-size: 0.9rem;">${state.user.role === 'admin' ? 'ADMINISTRATOR MODE' : 'CUSTOMER DASHBOARD'}</span>
+            </div>
+            <span style="font-size: 0.75rem; opacity: 0.9; font-weight: 600;">Account ID: ${state.user.email}</span>
+        </div>
+
         <!-- Stats Section -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -1183,9 +1335,12 @@ function renderDashboard(purchases, container) {
             </div>
         </div>
 
-        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <h3 style="font-size: 1.25rem;">Recent Transactions</h3>
-            <button class="btn btn-outline btn-sm" onclick="showAllTransactions()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">View All</button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline btn-sm" onclick="clearUserHistory()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; border-color: #ef4444; color: #ef4444;">Clear History</button>
+                <button class="btn btn-outline btn-sm" onclick="showAllTransactions()" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">View All</button>
+            </div>
         </div>
 
         <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
@@ -1208,7 +1363,7 @@ function renderDashboard(purchases, container) {
                             <tr class="transaction-row">
                                 <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
                                     <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">${p.id}</div>
-                                    <div style="font-size: 0.75rem; margin-top: 0.25rem; color: var(--text-muted);">${p.date}</div>
+                                    <div style="font-size: 0.75rem; margin-top: 0.25rem; color: var(--text-muted);">${formatDate(p.date)}</div>
                                 </td>
                                 <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
                                     <div style="font-weight: 600;">${p.title}</div>
@@ -1216,7 +1371,7 @@ function renderDashboard(purchases, container) {
                                 </td>
                                 <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-weight: 500;">${p.phone}</td>
                                 <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                                    <span class="status-badge ${statusClass}">${p.status || 'Processing'}</span>
+                                    <span class="status-badge ${statusClass}">${p.status || 'Pending'}</span>
                                 </td>
                                 <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right; font-weight: 700; color: var(--primary);">${formatCurrency(p.price)}</td>
                             </tr>
@@ -1239,29 +1394,45 @@ function renderDashboard(purchases, container) {
 }
 
 function initAuth() {
+    console.log('Initializing Auth Form...');
     const loginForm = document.getElementById('login-form');
-    if (!loginForm) return;
+    if (!loginForm) {
+        console.warn('Login form not found on this page');
+        return;
+    }
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Auth form submitted');
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const submitBtn = loginForm.querySelector('button');
         const isSignup = submitBtn.textContent === 'Sign Up';
         
+        console.log('Mode:', isSignup ? 'Signup' : 'Login', 'for:', email);
+        
         submitBtn.disabled = true;
         const originalText = submitBtn.textContent;
         submitBtn.textContent = isSignup ? 'Creating Account...' : 'Logging in...';
         
-        if (isSignup) {
-            const name = document.getElementById('name').value;
-            await signup(name, email, password);
-        } else {
-            await login(email, password);
+        try {
+            if (isSignup) {
+                const nameEl = document.getElementById('name');
+                if (!nameEl) throw new Error('Name field is missing');
+                const name = nameEl.value;
+                await signup(name, email, password);
+            } else {
+                await login(email, password);
+            }
+        } catch (err) {
+            console.error('Auth submission error:', err);
+            // Catch specific pattern mismatch error or generic ones
+            const msg = err.message || 'Unknown authentication error';
+            showToast(msg.includes('pattern') ? 'Login error: Please check your email format.' : `Login error: ${msg}`);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
-        
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
     });
 }
 
@@ -1294,7 +1465,8 @@ async function handleGoogleResponse(response) {
             
             showToast('✅ Welcome back, ' + (data.user.name || 'User') + '!');
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                const redirectPage = data.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+                window.location.href = redirectPage;
             }, 1500);
         } else {
             showToast('❌ Google Sign-In failed: ' + (data.message || 'Unknown error'));
@@ -1304,8 +1476,148 @@ async function handleGoogleResponse(response) {
         showToast('❌ Connection error. Please try again.');
     }
 }
+window.handleGoogleResponse = handleGoogleResponse;
+
+async function handleAppleLogin() {
+    showToast(' Sign in with Apple coming soon!');
+}
+window.handleAppleLogin = handleAppleLogin;
+
+async function refreshAdminData() {
+    const btn = document.getElementById('refresh-btn');
+    const lastUpdatedEl = document.getElementById('last-updated-time');
+    const idataBalanceEl = document.getElementById('admin-idata-balance');
+    
+    if (btn) {
+        btn.classList.add('refreshing');
+        btn.disabled = true;
+    }
+    
+    try {
+        // 1. Refresh Balance
+        const balance = await checkAdminBalance();
+        if (idataBalanceEl) idataBalanceEl.textContent = formatCurrency(balance);
+        
+        // 2. Refresh Stats and Orders
+        await Promise.all([
+            refreshAdminStats(),
+            refreshAdminOrders()
+        ]);
+        
+        // 3. Refresh Active Tab Content if needed
+        const activeTab = document.querySelector('#admin-nav .sidebar-link.active');
+        if (activeTab) {
+            const targetTab = activeTab.getAttribute('data-tab');
+            if (targetTab === 'prices') {
+                renderProfitSettings();
+                renderPriceControl();
+            }
+            if (targetTab === 'users') renderUserManagement();
+        }
+        
+        if (lastUpdatedEl) {
+            const now = new Date();
+            lastUpdatedEl.textContent = `Last updated: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        }
+        
+        showToast('✅ Data refreshed successfully!');
+    } catch (error) {
+        console.error('Refresh error:', error);
+        showToast('❌ Failed to refresh data.');
+    } finally {
+        if (btn) {
+            btn.classList.remove('refreshing');
+            btn.disabled = false;
+        }
+    }
+}
+
+async function exportReport() {
+    try {
+        const response = await fetch('/api/admin/orders');
+        const orders = await response.json();
+        
+        if (!orders || orders.length === 0) {
+            showToast('No data to export.');
+            return;
+        }
+        
+        // CSV Headers
+        const headers = ['Order ID', 'User', 'Bundle', 'Amount', 'Status', 'Date'];
+        const rows = orders.map(o => [
+            o.id,
+            o.user_email,
+            o.bundle_name,
+            `GHS ${o.amount}`,
+            o.status,
+            new Date(o.timestamp).toLocaleString()
+        ]);
+        
+        let csvContent = "data:text/csv;charset=utf-8," 
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+            
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Polymath_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('✅ Report exported successfully!');
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('❌ Failed to export report.');
+    }
+}
+
+async function clearUserHistory() {
+    if (!confirm('Are you sure you want to clear your personal order history? This will not affect your balance.')) {
+        return;
+    }
+    
+    try {
+        const res = await api.post('/user/clear-history');
+        if (res.success) {
+            showToast('✅ ' + res.message);
+            // Refresh dashboard
+            if (typeof initDashboard === 'function') {
+                initDashboard();
+            }
+        } else {
+            showToast('❌ ' + (res.message || 'Failed to clear history'));
+        }
+    } catch (err) {
+        console.error('Clear user history error:', err);
+        showToast('❌ Failed to connect to server');
+    }
+}
+
+async function clearAllHistory() {
+    if (!confirm('⚠️ CRITICAL: Are you sure you want to permanently clear all transaction history? This cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const res = await api.post('/admin/clear-history');
+        if (res.success) {
+            showToast('✅ History cleared successfully!');
+            await refreshAdminData(); // Refresh the UI
+        } else {
+            showToast('❌ ' + (res.message || 'Failed to clear history'));
+        }
+    } catch (err) {
+        console.error('Clear history error:', err);
+        showToast('❌ Failed to connect to server');
+    }
+}
 
 // Global Exports for HTML inline events
+window.refreshAdminData = refreshAdminData;
+window.exportReport = exportReport;
+window.clearAllHistory = clearAllHistory;
+window.clearUserHistory = clearUserHistory;
 window.handleGoogleResponse = handleGoogleResponse;
 window.addToCart = addToCart;
 window.logout = logout;
@@ -1353,9 +1665,12 @@ window.showAllTransactions = () => {
     if (!content) return;
     
     content.innerHTML = `
-        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <h2 style="font-size: 1.75rem;">All Transactions</h2>
-            <button class="btn btn-outline btn-sm" onclick="initDashboard()">Back to Overview</button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline btn-sm" onclick="clearUserHistory()" style="border-color: #ef4444; color: #ef4444;">Clear History</button>
+                <button class="btn btn-outline btn-sm" onclick="initDashboard()">Back to Overview</button>
+            </div>
         </div>
         
         <div style="background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
@@ -1416,7 +1731,7 @@ function renderTransactionsTable(purchases) {
                     <tr class="transaction-row">
                         <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
                             <div style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">${p.id}</div>
-                            <div style="font-size: 0.75rem; margin-top: 0.25rem; color: var(--text-muted);">${p.date}</div>
+                            <div style="font-size: 0.75rem; margin-top: 0.25rem; color: var(--text-muted);">${formatDate(p.date)}</div>
                         </td>
                         <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
                             <div style="font-weight: 600;">${p.title}</div>
@@ -1424,7 +1739,7 @@ function renderTransactionsTable(purchases) {
                         </td>
                         <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-weight: 500;">${p.phone}</td>
                         <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                            <span class="status-badge ${statusClass}">${p.status || 'Processing'}</span>
+                            <span class="status-badge ${statusClass}">${p.status || 'Pending'}</span>
                         </td>
                         <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); text-align: right; font-weight: 700; color: var(--primary);">${formatCurrency(p.price)}</td>
                     </tr>
@@ -1738,7 +2053,7 @@ async function refreshAdminOrders() {
                 <tr>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
                         <div style="font-weight: 600;">${t.userEmail || 'Customer'}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">${t.date}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${formatDate(t.date)}</div>
                     </td>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
                         <div style="font-weight: 500;">${t.title}</div>
@@ -1746,8 +2061,8 @@ async function refreshAdminOrders() {
                     </td>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">${t.phone}</td>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                        <span class="status-badge ${t.status?.toLowerCase() === 'completed' ? 'success' : 'warning'}">${t.status || 'Processing'}</span>
-                    </td>
+                    <span class="status-badge ${t.status?.toLowerCase() === 'completed' ? 'success' : (t.status?.toLowerCase() === 'failed' ? 'danger' : 'warning')}">${t.status || 'Pending'}</span>
+                </td>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); color: var(--success); font-weight: 600;">
                         +${formatCurrency(profit)}
                     </td>
@@ -1796,7 +2111,7 @@ async function renderUserManagement() {
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">${u.email}</td>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color); font-weight: 600;">${formatCurrency(u.balance || 0)}</td>
                     <td style="padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-color);">
-                        <span class="status-badge ${u.role === 'admin' ? 'success' : 'info'}" style="background: ${u.role === 'admin' ? 'var(--danger-light)' : 'var(--primary-light)'}; color: ${u.role === 'admin' ? 'var(--danger)' : 'var(--primary)'};">
+                        <span class="status-badge ${u.role === 'admin' ? 'danger' : 'info'}">
                             ${u.role || 'user'}
                         </span>
                     </td>
@@ -1898,12 +2213,12 @@ function saveProfitSettings() {
 window.saveProfitSettings = saveProfitSettings;
 
 async function updateOrderStatus(orderId) {
-    const newStatus = prompt('Enter new status (Completed, Failed, Processing):');
+    const newStatus = prompt('Enter new status (Completed, Failed, Pending):');
     if (!newStatus) return;
 
     const status = newStatus.charAt(0).toUpperCase() + newStatus.slice(1).toLowerCase();
-    if (!['Completed', 'Failed', 'Processing'].includes(status)) {
-        showToast('Invalid status. Please enter Completed, Failed, or Processing.');
+    if (!['Completed', 'Failed', 'Pending'].includes(status)) {
+        showToast('Invalid status. Please enter Completed, Failed, or Pending.');
         return;
     }
 
@@ -1952,7 +2267,6 @@ window.refreshAdminOrders = refreshAdminOrders;
 window.refreshAdminStats = refreshAdminStats;
 window.updateOrderStatus = updateOrderStatus;
 window.updateUserBalance = updateUserBalance;
-window.refreshAdminData = initAdmin;
 
 // --- Live Feed ---
 function renderLiveFeed() {
@@ -1998,15 +2312,63 @@ function updateNavAuthUI() {
         const initials = (state.user.name || state.user.email || 'U').charAt(0).toUpperCase();
         const balance = formatCurrency(state.user.balance || 0);
 
+        // Security check for page access
+        const path = window.location.pathname;
+        const page = path.split('/').pop() || 'index.html';
+        if (state.user.role === 'admin' && page === 'dashboard.html') {
+            window.location.href = 'admin.html';
+            return;
+        }
+        if (state.user.role === 'user' && page === 'admin.html') {
+            window.location.href = 'dashboard.html';
+            return;
+        }
+
+        // Add role-based class to body for CSS targeting
+        if (state.user.role === 'admin') {
+            document.body.classList.add('is-admin');
+        } else {
+            document.body.classList.remove('is-admin');
+        }
+
         const profileHTML = `
-            <div class="user-profile-nav" onclick="window.location.href='${state.user.role === 'admin' ? 'admin.html' : 'dashboard.html'}'" title="Go to Dashboard">
-                <div class="user-avatar-sm" style="${state.user.role === 'admin' ? 'background: var(--danger);' : ''}">${initials}</div>
-                <div class="user-balance-nav">${balance}</div>
+            <div class="user-profile-nav" onclick="window.location.href='${state.user.role === 'admin' ? 'admin.html' : 'dashboard.html'}'" title="Go to Dashboard" style="border: 2px solid ${state.user.role === 'admin' ? '#ef4444' : '#2563eb'}; padding: 6px 14px; border-radius: 12px; background: ${state.user.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(37, 99, 235, 0.05)'}; cursor: pointer; transition: all 0.2s ease;">
+                <div class="user-avatar-sm" style="${state.user.role === 'admin' ? 'background: #ef4444; border: 2px solid #fbbf24; box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);' : 'background: #2563eb;'}">
+                    ${initials}
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1px;">
+                    <div class="user-balance-nav" style="font-weight: 800; font-size: 0.95rem; color: ${state.user.role === 'admin' ? '#ef4444' : 'inherit'};">${balance}</div>
+                    <span class="role-badge ${state.user.role}" style="
+                        font-size: 0.65rem; 
+                        padding: 2px 8px; 
+                        border-radius: 4px; 
+                        text-transform: uppercase; 
+                        font-weight: 900;
+                        width: fit-content;
+                        letter-spacing: 0.08em;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        ${state.user.role === 'admin' ? 'background: #ef4444; color: white; border: 1px solid #fbbf24;' : 'background: #2563eb; color: white;'}
+                    ">
+                        <span style="font-size: 0.5rem;">●</span> ${state.user.role === 'admin' ? 'ADMIN MODE' : 'USER ACCOUNT'}
+                    </span>
+                </div>
             </div>
-            ${state.user.role === 'admin' ? '<a href="admin.html" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Admin Panel</a>' : ''}
-            <button class="btn btn-outline logout-btn" onclick="logout()">Logout</button>
+            ${state.user.role === 'admin' ? '<a href="admin.html" class="btn btn-primary" style="background: #ef4444; border-color: #ef4444; font-size: 0.8rem; padding: 0.4rem 0.8rem; font-weight: 800; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">🛡️ Control Panel</a>' : ''}
+            <button class="btn btn-outline logout-btn" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; font-weight: 600;" onclick="logout()">Logout</button>
         `;
         navActions.insertAdjacentHTML('beforeend', profileHTML);
+
+        // Update Mobile Account Link
+        const mobileAccountLink = document.getElementById('mobile-account-link');
+        if (mobileAccountLink) {
+            mobileAccountLink.href = state.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+            mobileAccountLink.innerHTML = `
+                <span>👤</span>
+                <span>Dashboard</span>
+            `;
+        }
 
         // Hide Member Promo Section if logged in (they are already a member)
         if (memberSection) {

@@ -22,8 +22,8 @@ def generate_report():
     with open(history_file, "r") as f:
         purchases = json.load(f)
 
-    total_revenue = sum(p['price'] for p in purchases)
-    total_cost = sum(p.get('cost', p['price'] * 0.8) for p in purchases) # fallback if cost missing
+    total_revenue = sum(p.get('price', 0) for p in purchases)
+    total_cost = sum(p.get('cost', p.get('price', 0) * 0.8) for p in purchases) # fallback if cost missing
     total_profit = total_revenue - total_cost
     
     print("\n" + "="*40)
@@ -39,7 +39,7 @@ def generate_report():
     
     bundle_stats = {}
     for p in purchases:
-        title = p['title']
+        title = p.get('title', f"Bundle {p.get('package_id', 'Unknown')}")
         bundle_stats[title] = bundle_stats.get(title, 0) + 1
     
     for title, count in sorted(bundle_stats.items(), key=lambda x: x[1], reverse=True):

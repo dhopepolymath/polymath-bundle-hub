@@ -34,14 +34,19 @@
     <main class="container">
         <div class="dashboard-grid">
             <aside class="dashboard-sidebar">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">👤</div>
-                    <h3 id="user-name">Loading...</h3>
-                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(37, 99, 235, 0.1); border-radius: 12px;">
-                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Wallet Balance</span>
-                        <strong id="user-balance" style="font-size: 1.5rem; color: var(--primary);">GHS 0.00</strong>
+                <div style="text-align: center; margin-bottom: 2rem; position: relative;">
+                    <div style="position: absolute; top: -10px; right: -10px;">
+                        <span class="role-badge user" style="background: #2563eb; color: white; padding: 2px 10px; border-radius: 99px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">User</span>
                     </div>
-                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; font-size: 0.85rem;" onclick="showTopupInfo()">Top-up Wallet</button>
+                    <div style="width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem; box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2);">👤</div>
+                    <h3 id="user-name" style="font-weight: 800; font-size: 1.2rem;">Loading...</h3>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: -5px; font-weight: 600;">PERSONAL ACCOUNT</p>
+                    
+                    <div style="margin-top: 1.5rem; padding: 1.2rem; background: rgba(37, 99, 235, 0.08); border-radius: 16px; border: 1px solid rgba(37, 99, 235, 0.1);">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">Available Balance</span>
+                        <strong id="user-balance" style="font-size: 1.75rem; color: var(--primary); font-family: 'Sora', sans-serif;">GHS 0.00</strong>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 1rem; font-size: 0.9rem; font-weight: 700; border-radius: 12px;" onclick="showTopupInfo()">Top-up Wallet</button>
                 </div>
                 <nav>
                     <a href="#" class="sidebar-link active" onclick="showDashboardTab('bundles')">
@@ -84,7 +89,7 @@
 
             <div style="margin-bottom: 2rem;">
                 <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount (GHS)</label>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Amount (GH₵)</label>
                     <input type="number" id="topup-amount" placeholder="e.g. 50" 
                         style="width: 100%; padding: 0.8rem 1rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-body); font-size: 1.1rem; font-weight: 700;">
                 </div>
@@ -102,6 +107,42 @@
             <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 1.5rem;">
                 Securely processed by <strong>Paystack</strong>
             </p>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+        <a href="dashboard.html" class="mobile-nav-item active" id="mobile-account-link">
+            <span>👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-card); padding: 2rem; border-radius: 24px; max-width: 450px; width: 90%; position: relative; box-shadow: var(--shadow-lg);">
+            <button onclick="hideCart()" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; font-size: 1.5rem; color: var(--text-muted);">&times;</button>
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">🛒 Your Cart</h2>
+            <div id="cart-items" style="max-height: 300px; overflow-y: auto; margin-bottom: 1.5rem;">
+                <!-- Cart items will be loaded here -->
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span style="font-weight: 600;">Total</span>
+                <span id="cart-total" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">GHS 0.00</span>
+            </div>
+            <a href="#" onclick="hideCart(); return false;" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1rem;">Continue Shopping</a>
         </div>
     </div>
 
@@ -141,6 +182,6 @@
         </div>
     </footer>
 
-    <script src="app.js?v=4.0"></script>
+    <script src="app.js?v=4.1"></script>
 </body>
 </html>

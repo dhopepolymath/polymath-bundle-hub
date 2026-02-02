@@ -39,7 +39,7 @@
 
     <main class="container" style="padding-top: 150px; min-height: 80vh;">
         <div id="bundle-details">
-            <!-- Loaded dynamically via app.js?v=4.0 -->
+            <!-- Loaded dynamically via app.js?v=4.1 -->
         </div>
     </main>
 
@@ -51,6 +51,26 @@
         </div>
     </footer>
 
-    <script src="app.js?v=4.0"></script>
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mobile-nav-item">
+            <span>🏠</span>
+            <span>Home</span>
+        </a>
+        <a href="bundles.html" class="mobile-nav-item active">
+            <span>📦</span>
+            <span>Bundles</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="showCart(); return false;">
+            <span>🛒</span>
+            <span>Cart</span>
+        </a>
+        <a href="login.html" class="mobile-nav-item" id="mobile-account-link">
+            <span>👤</span>
+            <span>Account</span>
+        </a>
+    </nav>
+
+    <script src="app.js?v=4.1"></script>
 </body>
 </html>
