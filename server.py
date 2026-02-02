@@ -10,10 +10,11 @@ import hmac
 import hashlib
 from datetime import datetime, timedelta
 from functools import wraps
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("dotenv not found, skipping load_dotenv() - assuming env vars are set manually")
 
 app = Flask(__name__, static_folder='.')
 CORS(app, resources={r"/*": {"origins": "*"}}) # Allow all origins for debugging connection issues
