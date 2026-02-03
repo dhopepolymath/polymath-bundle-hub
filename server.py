@@ -337,6 +337,25 @@ def admin_update_config(current_user):
     save_db(db)
     return jsonify({"success": True})
 
+@app.route("/api/admin/price/save", methods=["POST"])
+@admin_required
+def admin_save_price(current_user):
+    data = request.json
+    bundle_id = str(data.get("bundleId"))
+    new_price = data.get("price")
+    
+    db = load_db()
+    config = db.setdefault("config", {})
+    custom_prices = config.setdefault("custom_prices", {})
+    
+    if new_price is None or new_price == "":
+        custom_prices.pop(bundle_id, None)
+    else:
+        custom_prices[bundle_id] = float(new_price)
+        
+    save_db(db)
+    return jsonify({"success": True})
+
 @app.route("/api/admin/balance", methods=["GET"])
 @admin_required
 def admin_check_idata_balance(current_user):
@@ -347,7 +366,89 @@ def admin_check_idata_balance(current_user):
     except Exception:
         return jsonify({"success": False, "message": "iDATA connection failed"}), 500
 
-# --- 7. Payment Endpoints ---
+# --- 7. Payment & Purchase Endpoints ---
+@app.route("/api/buy", methods=["POST"])
+def buy_bundle():
+    data = request.json
+    network = data.get("network")
+    beneficiary = data.get("beneficiary")
+    bundle_id = data.get("pa_data-bundle-packages")
+    user_email = data.get("userEmail")
+
+    if not all([network, beneficiary, bundle_id]):
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+    if not IDATA_API_KEY:
+        return jsonify({"success": False, "message": "iDATA API Key not configured on server"}), 500
+
+    db = load_db()
+    user = next((u for u in db["users"] if u["email"] == user_email), None) if user_email else None
+    bundle = next((b for b in BUNDLES if b["id"] == int(bundle_id)), None)
+
+    if not bundle:
+        return jsonify({"success": False, "message": "Invalid bundle selected"}), 400
+
+    # Determine price (check for custom overrides)
+    price = bundle["price"]
+    custom_prices = db.get("config", {}).get("custom_prices", {})
+    if str(bundle_id) in custom_prices:
+        price = float(custom_prices[str(bundle_id)])
+
+    # Check balance if user is logged in
+    if user:
+        if user["balance"] < price:
+            return jsonify({"success": False, "message": "Insufficient balance"}), 400
+    
+    # --- CALL IDATA API ---
+    try:
+        idata_url = f"https://idatagh.com/wp-json/custom/v1/buy"
+        params = {
+            "api_key": IDATA_API_KEY,
+            "network": network,
+            "beneficiary": beneficiary,
+            "pa_data-bundle-packages": bundle_id
+        }
+        print(f"DEBUG: Processing purchase for {beneficiary} on {network} (Bundle: {bundle_id})")
+        res = requests.get(idata_url, params=params, timeout=30)
+        result = res.json()
+        
+        # iDATA returns success if order is placed
+        if result.get("success") or result.get("transactionId") or result.get("order_id"):
+            # Deduct balance if user exists
+            if user:
+                user["balance"] -= price
+            
+            # Record order
+            new_order = {
+                "id": result.get("transactionId") or result.get("order_id") or f"TXN-{int(time.time())}",
+                "userEmail": user_email or "Guest",
+                "beneficiary": beneficiary,
+                "network": network,
+                "bundleId": int(bundle_id),
+                "title": bundle["title"],
+                "price": price,
+                "status": "completed",
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            db.setdefault("orders", []).insert(0, new_order)
+            save_db(db)
+            
+            return jsonify({
+                "success": True, 
+                "message": "Purchase successful!", 
+                "transactionId": new_order["id"],
+                "order_id": new_order["id"]
+            })
+        else:
+            return jsonify({
+                "success": False, 
+                "message": result.get("message") or "Provider rejected the request"
+            })
+
+    except Exception as e:
+        print(f"ERROR in /api/buy: {str(e)}")
+        return jsonify({"success": False, "message": "Connection to provider failed"}), 500
+
 @app.route("/api/initialize-payment", methods=["POST"])
 def init_payment():
     if not PAYSTACK_SECRET_KEY: return jsonify({"success": False, "message": "Paystack key missing"}), 500
@@ -388,7 +489,18 @@ def verify_payment():
 # --- 8. User & General Routes ---
 @app.route("/api/bundles", methods=["GET"])
 def get_all_bundles():
-    return jsonify(BUNDLES)
+    db = load_db()
+    custom_prices = db.get("config", {}).get("custom_prices", {})
+    
+    # Return bundles with custom prices applied if they exist
+    modified_bundles = []
+    for b in BUNDLES:
+        bundle_copy = b.copy()
+        if str(b["id"]) in custom_prices:
+            bundle_copy["price"] = custom_prices[str(b["id"])]
+        modified_bundles.append(bundle_copy)
+        
+    return jsonify(modified_bundles)
 
 @app.route("/api/user/profile", methods=["GET"])
 @token_required
